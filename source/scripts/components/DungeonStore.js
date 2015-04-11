@@ -8,62 +8,14 @@ var DungeonStore = Phlux.createStore({
 		rooms: {},
 		min_width: 10,
 		min_height: 7,
-		tree: {
-		   "branch0": {
-			   "branch0": {
-				   "x": 0*WIDTH,
-				   "y": 0*HEIGHT,
-				   "width": 1*WIDTH,
-				   "height": 1*HEIGHT,
-				   "color": "red"
-			   },
-			   "branch1": {
-				   "x": 1*WIDTH,
-				   "y": 0*HEIGHT,
-				   "width": 2*WIDTH,
-				   "height": 1*HEIGHT,
-				   "color": "orange"
-			   }
-		   },
-		   "branch1": {
-			   "branch0": {
-				   "x": 0*WIDTH,
-				   "y": 1*HEIGHT,
-				   "width": 2*WIDTH,
-				   "height": 2*HEIGHT,
-				   "color": "blue"
-			   },
-			   "branch1": {
-				   "x": 2*WIDTH,
-				   "y": 1*HEIGHT,
-				   "width": 1*WIDTH,
-				   "height": 2*HEIGHT,
-				   "color": "purple"
-			   }
-		   }
-		}
     },
     initiateStore: function() {
 		var size = 3
 		var room_width = WIDTH - 1
 		var room_height = HEIGHT - 1	
 		
-		//partition rooms
-		for(var column = 0; column < size; column++)
-		{
-			for(var row = 0; row < size; row++)
-			{
-				this.data.rooms[row + "x" + column] = {
-					"x": row * WIDTH,
-					"y": column * HEIGHT,
-					"width": Math.floor(Math.random() * 10) + 5,
-					"height": Math.floor(Math.random() * 10) + 5
-				}				
-			}
-		}
-		
 		//doors
-		for (column = 0; column < size; column++)
+		/*for (column = 0; column < size; column++)
 		{
 				for(row = 0; row < size; row++)
 				{
@@ -79,16 +31,9 @@ var DungeonStore = Phlux.createStore({
 						this.makeRoom(row * WIDTH + Math.floor((room_width / 2)), column * HEIGHT + Math.floor((room_height / 2)), 1, HEIGHT)
 					}
 				}
-		}
-		
-		//make room tiles
-		/*for(var index in this.data.rooms)
-		{
-			var room = this.data.rooms[index]
-			console.log(room)
-			this.makeRoom(room.x, room.y, room.width, room.height)
 		}*/
-	
+		
+		//make room tiles	
 		this.data.tree = {
 			"x": 0,
 			"y": 0,
@@ -98,8 +43,11 @@ var DungeonStore = Phlux.createStore({
 		
 		this.data.tree = this.partition(this.data.tree)
 		
-		//this.preOrder(this.tree.root)		
+		this.makeTreeRooms(this.data.tree)		
 		
+		//this.makeTreeDoors(this.data.tree)
+		
+		console.log(this.data.tree)
 		
     },
 	getRandomColor: function() {
@@ -131,23 +79,30 @@ var DungeonStore = Phlux.createStore({
 				return node;
 			}
 			else
-			{			
+			{
+				var old_node = node
 				node = {
 					"branch0": {
 						"x": node_x,
 						"y": node_y,
 						"width": node_width,
 						"height": cut - node_y,
-						"color": this.getRandomColor()
+						////"color": this.getRandomColor(),
+						"parent": old_node
 					},
 					"branch1": {
 						"x": node_x,
 						"y": cut,
 						"width": node_width,
 						"height": node_y + node_height - cut,
-						"color": this.getRandomColor()
+						////"color": this.getRandomColor(),
+						"parent": old_node
 					}
 				}
+				
+				node.branch0.sibling = node.branch1
+				node.branch1.sibling = node.branch0
+				
 				node.branch0 = this.partition_horizontal(node.branch0)
 				node.branch1 = this.partition_horizontal(node.branch1)
 			}
@@ -176,23 +131,29 @@ var DungeonStore = Phlux.createStore({
 				return node;
 			}
 			else
-			{			
+			{
+				var old_node = node
 				node = {
 					"branch0": {
 						"x": node_x,
 						"y": node_y,
 						"width": cut - node_x,
 						"height": node_height,
-						"color": this.getRandomColor()
+						////"color": this.getRandomColor(),
+						"parent": old_node
 					},
 					"branch1": {
 						"x": cut,
 						"y": node_y,
 						"width": node_x + node_width - cut,
 						"height": node_height,
-						"color": this.getRandomColor()
+						////"color": this.getRandomColor(),
+						"parent": old_node						
 					}
 				}
+				node.branch0.sibling = node.branch1
+				node.branch1.sibling = node.branch0
+				
 				node.branch0 = this.partition_vertical(node.branch0)
 				node.branch1 = this.partition_vertical(node.branch1)
 			}
@@ -200,17 +161,75 @@ var DungeonStore = Phlux.createStore({
 		
 		return node;
 	},
-	preOrder: function(node) {
+	makeTreeRooms: function(node) {
 		if(node.x != null)
 		{
-			//console.log(node)
+			x_offset = Math.floor(Math.random() * node.width) + 1	
+			y_offset = Math.floor(Math.random() * node.height) + 1 
+			
+			if(node.width - x_offset - 2 < this.data.min_width)
+			{
+				x_offset = this.data.min_width - (node.width - x_offset - 1)
+			}
+			if(node.height - y_offset - 2 < this.data.min_height)
+			{
+				y_offset = this.data.min_height - (node.height - y_offset - 1)
+			}
+			
+			console.log(node.x + x_offset, node.y + y_offset, node.width - x_offset - 1, node.height - y_offset - 1)
+			this.makeRoom(node.x + x_offset, node.y + y_offset, node.width - x_offset - 1, node.height - y_offset - 1)
 		}
 		else
 		{
-			this.preOrder(node.branch0)
-			this.preOrder(node.branch1)
+			this.makeTreeRooms(node.branch0)
+			this.makeTreeRooms(node.branch1)
 		}
 		return;
+	},
+	makeTreeDoors: function(node) {		
+		console.log(node)
+		if(node.x != null && node.sibling != null)
+		{			
+			this.makeDoor(node, node.sibling)
+			return;
+		}
+		else
+		{
+			this.makeTreeDoors(node.branch0)
+			this.makeTreeDoors(node.branch1)
+		}
+	},
+	makeDoor: function(node1, node2) {
+		console.log(node1, node2)
+		if(node1.x == node2.x) {
+			this.makeDoorVert(node1, node2)
+			return
+		}
+		else
+		{
+			this.makeDoorHoriz(node1, node2)
+			return
+		}
+	},
+	makeDoorVert: function(node1, node2) {
+		var x = Math.floor((Math.random() * node1.width - 1)) + node1.x + 1;
+		var y = node1.y + node1.height;
+		
+		/*if(node1.width < node2.width)
+		{
+			x = (Math.random() * node1.width) + node1.x
+		}
+		else
+		{
+			x = (Math.random() * node2.width) + node2.x
+		}*/
+		this.makeRoom(x, y, 1, 1)
+	},
+	makeDoorHoriz: function(node1, node2) {
+		var x = node1.x + node1.width;
+		var y = Math.floor((Math.random() * node1.height - 1)) + node1.y + 1;
+		
+		this.makeRoom(x, y, 1, 1)
 	},
     getTile: function(x, y) {
         x = Math.floor(x)

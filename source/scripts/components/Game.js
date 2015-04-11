@@ -14,8 +14,8 @@ var Level = require("<scripts>/references/level.json")
 var AdventurerStore = Phlux.createStore({
     data: {
         position: {
-            x: 0,
-            y: 0
+            x: 10,
+            y: 10
         },
         color: "#EEE",
         character: "@"
