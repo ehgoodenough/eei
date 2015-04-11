@@ -7,38 +7,9 @@ var Zoom = require("<scripts>/components/Zoom")
 var Camera = require("<scripts>/components/Camera")
 var Dungeon = require("<scripts>/components/Dungeon")
 var Adventurer = require("<scripts>/components/Adventurer")
+var DungeonStore = require("<scripts>/components/DungeonStore")
 
 var Level = require("<scripts>/references/level.json")
-
-var DungeonStore = Phlux.createStore({
-    data: {
-        width: 20,
-        height: 15,
-        tiles: {}
-    },
-    initiateStore: function() {
-        this.data.width = Level.width
-        this.data.height = Level.height
-        var tiles = Level.layers[0].data
-        for(var x = 0; x < Level.width; x++) {
-            for(var y = 0; y < Level.height; y++) {
-                var tile = tiles[y * Level.width + x]
-                this.data.tiles[x + "x" + y] = {
-                    position: {
-                        "x": x,
-                        "y": y
-                    },
-                    "value": tile - 1
-                }
-            }
-        }
-    },
-    getTile: function(x, y) {
-        x = Math.floor(x)
-        y = Math.floor(y)
-        return this.data.tiles[x + "x" + y]
-    }
-})
 
 var AdventurerStore = Phlux.createStore({
     data: {
