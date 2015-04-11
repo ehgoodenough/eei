@@ -46,7 +46,7 @@ var Phlux = {
                 this.listeners[action].push(listener)
                 //If you wanted to add an additional
                 //trigger at the end of each and every
-                //listener, here is where you do it.
+                //method, here is where you do it.
             }
         }
         //Initiate the store.

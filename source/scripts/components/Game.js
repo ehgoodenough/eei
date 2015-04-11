@@ -1,7 +1,10 @@
 var Phlux = require("<scripts>/utilities/Phlux")
+var LoopListenerMixin = require("<scripts>/utilities/LoopListenerMixin")
 var KeyboardListenerMixin = require("<scripts>/utilities/KeyboardListenerMixin")
 
 var GameFrame = require("<scripts>/components/GameFrame")
+var Zoom = require("<scripts>/components/Zoom")
+var Camera = require("<scripts>/components/Camera")
 var Dungeon = require("<scripts>/components/Dungeon")
 var Adventurer = require("<scripts>/components/Adventurer")
 
@@ -42,7 +45,9 @@ var AdventurerStore = Phlux.createStore({
         position: {
             x: 10,
             y: 10
-        }
+        },
+        color: "#EEE",
+        character: "@"
     },
     onKeyW: function() {
         if(DungeonStore.getTile(this.data.position.x, this.data.position.y - 1).value === 1) {
@@ -72,6 +77,7 @@ var AdventurerStore = Phlux.createStore({
 
 var Game = React.createClass({
     mixins: [
+        LoopListenerMixin,
         KeyboardListenerMixin,
         Phlux.connectStore(DungeonStore, "dungeon"),
         Phlux.connectStore(AdventurerStore, "adventurer")
@@ -81,38 +87,37 @@ var Game = React.createClass({
             <GameFrame>
                 <Camera target={this.state.adventurer}>
                     <Dungeon data={this.state.dungeon}/>
-                    <Adventurer data={this.state.adventurer}/>
+                    <Entity data={this.state.adventurer}/>
                 </Camera>
             </GameFrame>
         )
     }
 })
 
-var Camera = React.createClass({
-    propTypes: {
-        target: React.PropTypes.shape({
-            position: React.PropTypes.shape({
-                x: React.PropTypes.number.isRequired,
-                y: React.PropTypes.number.isRequired
-            }).isRequired
-        }).isRequired
-    },
+var Entity = React.createClass({
     render: function() {
         return (
             <div style={this.renderStyles()}>
-                {this.props.children}
+                {this.props.data.character}
             </div>
         )
     },
     renderStyles: function() {
         return {
+            width: "1em",
+            height: "1em",
+            textAlign: "center",
+            color: this.props.data.color,
             position: "absolute",
-            top: (this.props.target.position.y - (HEIGHT / 2)) * -1 + "em",
-            left: (this.props.target.position.x - (WIDTH / 2)) * -1 + "em",
+            top: this.props.data.position.y + "em",
+            left: this.props.data.position.x + "em",
+            transitionDuration: "0.25s",
             transitionProperty: "top left",
-            transitionDuration: "0.25s"
+            transitionTimingFunction: "ease-out",
         }
     }
 })
+
+module.exports = Adventurer
 
 module.exports = Game

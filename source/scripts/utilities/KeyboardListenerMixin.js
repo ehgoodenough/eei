@@ -15,6 +15,9 @@ var KeyboardListenerMixin = {
             var key = vkey[event.keyCode]
             delete keystrokes[key]
         })
+    },
+    componentWillUnmount: function() {
+        //document.removeEventListener
     }
 }
 
