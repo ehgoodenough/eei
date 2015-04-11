@@ -1,4 +1,4 @@
-# Unnamed #
+# Unnamed / EEI #
 
 A roguelike!
 
