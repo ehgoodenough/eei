@@ -14,8 +14,8 @@ var Level = require("<scripts>/references/level.json")
 var AdventurerStore = Phlux.createStore({
     data: {
         position: {
-            x: 10,
-            y: 10
+            x: 0,
+            y: 0
         },
         color: "#EEE",
         character: "@"
@@ -54,15 +54,18 @@ var Game = React.createClass({
         Phlux.connectStore(AdventurerStore, "adventurer")
     ],
     render: function() {
-        return (
-            <GameFrame>
-                <Camera target={this.state.adventurer}>
-                    <Dungeon data={this.state.dungeon}/>
-                    <Entity data={this.state.adventurer}/>
-                </Camera>
-            </GameFrame>
-        )
-    }
+       return (
+           <GameFrame>
+			<Zoom scale={-6}>
+               <Camera target={this.state.adventurer}>
+                   <Dungeon data={this.state.dungeon}/>
+                   <Entity data={this.state.adventurer}/>
+                   <BinarySpacePartition tree={this.state.dungeon.tree}/>
+               </Camera>
+			</Zoom>
+           </GameFrame>
+       )
+   }
 })
 
 var Entity = React.createClass({
@@ -87,6 +90,35 @@ var Entity = React.createClass({
             transitionTimingFunction: "ease-out",
         }
     }
+})
+
+var BinarySpacePartition = React.createClass({
+   render: function() {
+       if(this.props.tree.branch0 !== undefined
+       && this.props.tree.branch1 !== undefined) {
+           return (
+               <div>
+                   <BinarySpacePartition tree={this.props.tree.branch0}/>
+                   <BinarySpacePartition tree={this.props.tree.branch1}/>
+               </div>
+           )
+       } else {
+           return (
+               <div style={this.renderStyles()}/>
+           )
+       }
+   },
+   renderStyles: function() {
+       return {
+           position: "absolute",
+           top: this.props.tree.y + "em",
+           left: this.props.tree.x + "em",
+           height: this.props.tree.height + "em",
+           width: this.props.tree.width + "em",
+           backgroundColor: this.props.tree.color,
+           opacity: 0.5
+       }
+   }
 })
 
 module.exports = Adventurer
