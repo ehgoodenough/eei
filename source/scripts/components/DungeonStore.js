@@ -108,6 +108,54 @@ var DungeonStore = Phlux.createStore({
   && (lor.length == 6) ?  lor : co(lor); })('');
 	},
 	partition: function(node) {
+		return this.partition_vertical(node)
+	},
+	partition_vertical: function(node) {
+		var cut_offset = 2
+		
+		if(Math.random() < 0)
+		{
+			return node;
+		}
+		else
+		{
+			var cut = Math.floor(Math.random() * (node.height - cut_offset)) + node.y + cut_offset
+			node_x = node.x
+			node_y = node.y
+			node_width = node.width
+			node_height = node.height
+			
+			//if one of the resulting rooms would be smaller than min_width
+			if(cut - node_y < this.data.min_height || node_y + node_height - cut < this.data.min_height)
+			{
+				return node;
+			}
+			else
+			{			
+				node = {
+					"branch0": {
+						"x": node_x,
+						"y": node_y,
+						"width": node_width,
+						"height": cut - node_y,
+						"color": this.getRandomColor()
+					},
+					"branch1": {
+						"x": node_x,
+						"y": cut,
+						"width": node_width,
+						"height": node_y + node_height - cut,
+						"color": this.getRandomColor()
+					}
+				}
+				node.branch0 = this.partition_horizontal(node.branch0)
+				node.branch1 = this.partition_horizontal(node.branch1)
+			}
+		}
+		
+		return node;
+	},
+	partition_horizontal: function(node) {
 		var cut_offset = 4
 		
 		if(Math.random() < 0)
@@ -145,8 +193,8 @@ var DungeonStore = Phlux.createStore({
 						"color": this.getRandomColor()
 					}
 				}
-				node.branch0 = this.partition(node.branch0)
-				node.branch1 = this.partition(node.branch1)
+				node.branch0 = this.partition_vertical(node.branch0)
+				node.branch1 = this.partition_vertical(node.branch1)
 			}
 		}
 		
