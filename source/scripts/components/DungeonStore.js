@@ -42,9 +42,6 @@ var DungeonStore = Phlux.createStore({
 		//connect rooms
 		this.makeTreeDoors(rooms_to_connect)
 		
-		console.log(rooms_to_connect)
-		console.log(this.data.tree)
-		
     },
 	getStartX: function() {
 		return this.data.adventurer_x
@@ -89,7 +86,7 @@ var DungeonStore = Phlux.createStore({
 						"y": node_y,
 						"width": node_width,
 						"height": cut - node_y,
-						"color": this.getRandomColor(),
+						//"color": this.getRandomColor(),
 						"parent": old_node
 					},
 					"branch1": {
@@ -97,7 +94,7 @@ var DungeonStore = Phlux.createStore({
 						"y": cut,
 						"width": node_width,
 						"height": node_y + node_height - cut,
-						"color": this.getRandomColor(),
+						//"color": this.getRandomColor(),
 						"parent": old_node
 					}
 				}
@@ -141,7 +138,7 @@ var DungeonStore = Phlux.createStore({
 						"y": node_y,
 						"width": cut - node_x,
 						"height": node_height,
-						"color": this.getRandomColor(),
+						//"color": this.getRandomColor(),
 						"parent": old_node
 					},
 					"branch1": {
@@ -149,7 +146,7 @@ var DungeonStore = Phlux.createStore({
 						"y": node_y,
 						"width": node_x + node_width - cut,
 						"height": node_height,
-						"color": this.getRandomColor(),
+						//"color": this.getRandomColor(),
 						"parent": old_node						
 					}
 				}
@@ -191,8 +188,6 @@ var DungeonStore = Phlux.createStore({
 		return;
 	},
 	euler: function(node, node_array) {
-		
-		//console.log("Visiting:", node)
 		if(node.branch0 != null)
 		{
 			this.euler(node.branch0, node_array)
@@ -221,39 +216,130 @@ var DungeonStore = Phlux.createStore({
 		var x_mis = false
 		var y_mis = false
 		
-		console.log(range1, range2)
-		
 		//if not aligned at all
 		if((range2.min_x > range1.max_x) || (range1.min_x > range2.max_x))
 		{
-			console.log("	x not aligned")
 			x_mis = true
 		}
 		if((range2.min_y > range1.max_y) || (range1.min_y > range2.max_y))
 		{
-				console.log("	y not aligned")
 				y_mis = true
 		}
 		if(x_mis && y_mis)
 		{
 			//needs corner
 			console.log("	misaligned")
+			this.makeDoorCorner(node1, node2, range1, range2)
 		}
 		else
 		{
 			//connect -> horizontal
 			if(x_mis)
 			{
-				console.log("	connecting horiz")
 				this.makeDoorHoriz(node1, node2, range1, range2)
 			}
 			//connect v^ vertical
 			else
 			{
-				console.log("	connecting vert")
 				this.makeDoorVert(node1, node2, range1, range2)
 			}
 		}		
+	},
+	makeDoorCorner: function(node1, node2, range1, range2){
+		var cen_x1, cen_x2, cen_y1, cen_y2, cen_x, cen_y
+		
+		cen_x1 = Math.floor((range1.min_x + range1.max_x) / 2)
+		cen_x2 = Math.floor((range2.min_x + range2.max_x) / 2)
+		cen_y = Math.floor((range2.min_y + range1.max_y) / 2)
+				
+		//down from first
+		this.makeRoom(cen_x1, range1.max_y, 1, cen_y - range1.max_y)
+		//up from second
+		this.makeRoom(cen_x2, cen_y, 1, range2.min_y - cen_y)
+		//connect in middle
+		//this.makeRoom(cen_x2, cen_y, Math.abs(cen_x2 - cen_x1) + 1, 1)
+		if(range1.max_y < range2.min_y)
+			{
+				cen_y = Math.floor((range2.min_y + range1.max_y) / 2)
+				
+				//down from first
+				this.makeRoom(cen_x1, range1.max_y, 1, cen_y - range1.max_y)
+				//up from second
+				this.makeRoom(cen_x2, cen_y, 1, range2.min_y - cen_y)
+				//connect in middle
+				this.makeRoom(cen_x2, cen_y, Math.abs(cen_x2 - cen_x1) + 1, 1)
+			}
+			//if 2 is higher
+			else
+			{
+				cen_y = Math.floor((range2.max_y + range1.min_y) / 2)
+				
+				//down from first
+				this.makeRoom(cen_x2, range2.max_y, 1, cen_y - range2.max_y)
+				//up from second
+				this.makeRoom(cen_x1, cen_y, 1, range1.min_y - cen_y)
+				//connect in middle
+				this.makeRoom(cen_x1, cen_y, Math.abs(cen_x2 - cen_x1) + 1, 1)
+			}
+		/*
+		//connect on one y
+		if(Math.random() < 0.5)
+		{
+			cen_x1 = Math.floor((range1.min_x + range1.max_x) / 2)
+			cen_x2 = Math.floor((range2.min_x + range2.max_x) / 2)
+			//if 1 is higher
+			if(range1.max_y < range2.min_y)
+			{
+				cen_y = Math.floor((range2.min_y + range1.max_y) / 2)
+				
+				//down from first
+				this.makeRoom(cen_x1, range1.max_y, 1, cen_y - range1.max_y)
+				//up from second
+				this.makeRoom(cen_x2, cen_y, 1, range2.min_y - cen_y)
+				//connect in middle
+				this.makeRoom(cen_x1, cen_y, cen_x2 - cen_x1, 1)
+			}
+			//if 2 is higher
+			else
+			{
+				cen_y = Math.floor((range2.max_y + range1.min_y) / 2)
+				
+				//down from first
+				this.makeRoom(cen_x2, range2.max_y, 1, cen_y - range2.max_y)
+				//up from second
+				this.makeRoom(cen_x1, cen_y, 1, range1.min_y - cen_y)
+				//connect in middle
+				this.makeRoom(cen_x2, cen_y, cen_x1 - cen_x2, 1)
+			}
+		}
+		//connect on one x
+		else
+		{
+			cen_y1 = Math.floor((range1.min_y + range1.max_y) / 2)
+			cen_y2 = Math.floor((range2.min_y + range2.max_y) / 2)
+			if(range1.max_x < range2.min_x)
+			{
+				cen_x = Math.floor((range2.min_x + range1.max_x) / 2)
+				
+				//left from first
+				this.makeRoom(range1.max_x, cen_y1, cen_x - range1.max_x, 1)
+				//right from second
+				this.makeRoom(cen_x, cen_y1, range2.min_x - cen_x, 1)
+				//connect in middle
+				this.makeRoom(cen_x, cen_y1, 1, cen_y2 - cen_y1)
+			}
+			else
+			{
+				cen_x = Math.floor((range2.max_x + range1.min_x) / 2)
+				
+				//left from first
+				this.makeRoom(range2.max_x, cen_y2, cen_x - range2.max_x, 1)
+				//right from second
+				this.makeRoom(cen_x, cen_y2, range1.min_x - cen_x, 1)
+				//connect in middle
+				this.makeRoom(cen_x, cen_y2, 1, cen_y1 - cen_y2)
+			}			
+		}*/
 	},
 	makeDoorHoriz: function(node1, node2, range1, range2){
 		var start_x, stop_x, start_y, stop_y, path_y
@@ -295,8 +381,6 @@ var DungeonStore = Phlux.createStore({
 		
 		
 		path_y = Math.floor(Math.random() * (stop_y - start_y)) + start_y
-		
-		console.log(start_y, stop_y, (stop_y - start_y) + start_y, path_y)
 		
 		this.makeRoom(start_x, path_y, (stop_x - start_x), 1)
 		
@@ -343,10 +427,7 @@ var DungeonStore = Phlux.createStore({
 		
 		
 		path_x = Math.floor(Math.random() * (stop_x - start_x)) + start_x
-		
-		console.log(start_x, stop_x, (stop_x - start_x) + start_x, path_x)
-		
-		console.log("connecting path should be:",path_x, start_y, 1, (stop_x - start_x))
+
 		this.makeRoom(path_x, start_y, 1, (stop_y - start_y))
 	},
 	getBoundaries: function(node) {
