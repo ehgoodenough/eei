@@ -40,7 +40,11 @@ var DungeonStore = Phlux.createStore({
 				//figure out which rooms to connect
 				var rooms_to_connect = []
 				rooms_to_connect = this.euler(this.data.tree, rooms_to_connect)
-				this.data.rooms = rooms_to_connect
+				for(index in rooms_to_connect)
+				{
+					this.data.rooms[index] = this.getBoundaries(rooms_to_connect[index])
+				}
+				
 				var start_room = this.getBoundaries(rooms_to_connect[0])
 
 				this.data.adventurer_x = Math.floor((start_room.min_x + start_room.max_x) / 2)

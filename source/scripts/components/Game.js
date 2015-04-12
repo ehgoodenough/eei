@@ -112,8 +112,10 @@ var MonsterStore = Phlux.createStore({
     addMonstersToRoom: function(room, amount)
     {
         for(var index = 0; index < amount; index++) {
-            var x = Math.floor(Math.random() * room.width) + room.x
-            var y = Math.floor(Math.random() * room.height) + room.y
+            var width = room.max_x - room.min_x
+            var height = room.max_y - room.min_y
+            var x = Math.floor(Math.random() * width) + room.min_x
+            var y = Math.floor(Math.random() * height) + room.min_y
             this.addMonster(MonsterData.dragon, {"x": x, "y": y})
         }
     },
