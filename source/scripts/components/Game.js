@@ -10,19 +10,26 @@ var Zoom = require("<scripts>/components/Zoom")
 var Camera = require("<scripts>/components/Camera")
 var Dungeon = require("<scripts>/components/Dungeon")
 var Entity = require("<scripts>/components/Entity")
+var Messages = require("<scripts>/components/Messages")
 
 var DungeonData = require("<scripts>/references/DungeonData.json")
 var MonsterData = require("<scripts>/references/MonsterData.json")
 
 var AdventurerStore = Phlux.createStore({
-    data: {
-        position: {
-            x: 9,
-            y: 9
-        },
-        color: "#EEE",
-        character: "@",
-        health: "3"
+    initiateStore: function() {
+        this.data = {
+            position: {
+                x: 9,
+                y: 9
+            },
+            color: "#111",
+            character: "@",
+            life: 3
+        }
+        this.trigger()
+    },
+    onRestartGame: function() {
+        this.initiateStore()
     },
     onKeyW: function() {
         if(DungeonStore.getTile(this.data.position.x, this.data.position.y - 1)) {
@@ -54,16 +61,25 @@ var AdventurerStore = Phlux.createStore({
     },
     "onKey.": function() {
         Phlux.triggerAction("MoveAdventurer", this.data)
+    },
+    onAttackAdventurer: function(damage) {
+        this.data.life -= damage
+        this.trigger()
+        if(this.data.life <= 0) {
+            Phlux.triggerAction("RestartGame")
+        } else {
+            this.trigger()
+        }
     }
 })
 
 var DungeonStore = Phlux.createStore({
-    data: {
-        width: 20,
-        height: 15,
-        tiles: {}
-    },
     initiateStore: function() {
+        this.data = {
+            width: 20,
+            height: 15,
+            tiles: {}
+        }
         this.data.width = DungeonData.width
         this.data.height = DungeonData.height
         var tiles = DungeonData.layers[0].data
@@ -81,6 +97,10 @@ var DungeonStore = Phlux.createStore({
                 }
             }
         }
+        this.trigger()
+    },
+    onRestartGame: function() {
+        this.initiateStore()
     },
     getTile: function(x, y) {
         return this.data.tiles[Math.floor(x) + "x" + Math.floor(y)]
@@ -213,8 +233,13 @@ var DungeonStore = Phlux.createStore({
 
 var MonsterStore = Phlux.createStore({
     initiateStore: function() {
+        this.data = {}
         this.addMonster(MonsterData.dragon, {x: 2, y: 2})
         this.addMonster(MonsterData.demon, {x: 17, y: 5})
+        this.trigger()
+    },
+    onRestartGame: function() {
+        this.initiateStore()
     },
     addMonster: function(protomonster, position) {
         var key = UUID.v4()
@@ -245,7 +270,7 @@ var MonsterStore = Phlux.createStore({
                 if(next_position.x == adventurer.position.x
                 && next_position.y == adventurer.position.y) {
                     monster.path.unshift(next_position)
-                    adventurer.health -= monster.damage
+                    Phlux.triggerAction("AttackAdventurer", monster.damage)
                     var message = "A " + monster.name + " attacks you for " + monster.damage + " damage."
                     Phlux.triggerAction("DisplayMessage", message)
                 } else {
@@ -278,8 +303,8 @@ var MonsterStore = Phlux.createStore({
 })
 
 var MessageStore = Phlux.createStore({
-    data: new Array(),
     initiateStore: function() {
+        this.data = []
         this.data.unshift({
             "key": UUID.v4(),
             "text": "Welcome to Unnamed! :]"
@@ -287,26 +312,34 @@ var MessageStore = Phlux.createStore({
         window.setTimeout(function() {
             this.data.unshift({
                 "key": UUID.v4(),
-                "text": "Try not to die."
+                "text": "Try not to die, okay?"
             })
             this.trigger()
         }.bind(this), 2000)
         window.setTimeout(function() {
-            this.data.unshift({
-                "key": UUID.v4(),
-                "text": "Used WASD to move."
-            })
-            this.trigger()
+            if(AdventurerStore.data.position.x === 9
+            && AdventurerStore.data.position.y === 9) {
+                this.data.unshift({
+                    "key": UUID.v4(),
+                    "text": "Used WASD to move."
+                })
+                this.trigger()
+            }
         }.bind(this), 4000)
+    },
+    onRestartGame: function() {
+        this.data = []
+        this.data.unshift({
+            "key": UUID.v4(),
+            "text": "Yeah, you'll die a lot. Sorry."
+        })
+        this.trigger()
     },
     onDisplayMessage: function(text) {
         this.data.unshift({
             "key": UUID.v4(),
             "text": text
         })
-        if(this.data.length > 3) {
-            this.data.pop()
-        }
         this.trigger()
     }
 })
@@ -330,6 +363,7 @@ var Game = React.createClass({
                     {this.renderPoints(this.state.monsters, "line", "red")}
                     {this.renderPoints(this.state.monsters, "path", "yellow")}
                 </Camera>
+                <AdventurerStatus data={this.state.adventurer}/>
                 <Messages data={this.state.messages}/>
             </GameFrame>
         )
@@ -369,72 +403,55 @@ var Game = React.createClass({
     }
 })
 
-var Messages = React.createClass({
+var AdventurerStatus = React.createClass({
     render: function() {
         return (
             <div style={this.renderStyles()}>
-                {this.renderMessages()}
+                {this.renderHearts()}
             </div>
         )
     },
     renderStyles: function() {
         return {
-            left: "0.25em",
-            right: "0.25em",
-            bottom: "0.25em",
+            top: "0em",
+            right: "0em",
             position: "absolute",
-            transitionDuration: "0.25s"
+            paddingRight: "0.25em",
         }
     },
-    renderMessages: function() {
+    renderHearts: function() {
         var renderings = []
-        for(var index in this.props.data) {
-            var message = this.props.data[index]
-            renderings.unshift(
-                <Message data={message}
-                    key={message.key}
-                    index={index}/>
-            )
+        for(var index = 0; index < 3; index++) {
+            if(index < this.props.data.life) {
+                renderings.push(
+                    <AdventurerHeart key={index}
+                        beating={true}/>
+                )
+            } else {
+                renderings.push(
+                    <AdventurerHeart key={index}
+                        beating={false}/>
+                )
+            }
         }
         return renderings
     }
 })
 
-var Message = React.createClass({
-    getInitialState: function() {
-        return {
-            index: -1
-        }
-    },
+var AdventurerHeart = React.createClass({
     render: function() {
         return (
-            <div style={this.renderStyles()}>
-                {this.props.data.text}
-            </div>
+            <span className="heart"
+                style={this.renderStyles()}>
+                ❤
+            </span>
         )
-    },
-    componentDidMount: function() {
-        window.setTimeout(function(){
-            this.setState({
-                index: this.props.index
-            })
-        }.bind(this), 1)
-    },
-    componentWillReceiveProps: function(props) {
-        this.setState({
-            index: props.index
-        })
     },
     renderStyles: function() {
         return {
-            color: "#EEE",
-            fontSize: "0.75em",
-            position: "absolute",
-            opacity: (3 - this.state.index) / 3,
-            bottom: this.state.index * 1.25 + "em",
-            transitionDuration: "0.25s",
-            transitionProperty: "top opacity",
-            transitionTimingFunction: "ease-out"
+            fontSize: "2em",
+            paddingLeft: "0.1em",
+            color: this.props.beating ? "#C33" : "#EEE"
         }
     }
 })

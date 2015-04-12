@@ -2,6 +2,7 @@
 @import "./styles/references/Colors.scss";
 @import "./styles/references/Defaults.scss";
 @import "./styles/components/GameFrame.scss";
+@import "./styles/components/Messages.scss";
 
 html
 {
@@ -10,6 +11,6 @@ html
     #game-frame
     {
         font-family: goldfish;
-    	background-color: $gray;
+    	background-color: #507642;
     }
 }

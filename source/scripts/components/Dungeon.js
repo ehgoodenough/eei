@@ -20,7 +20,7 @@ var Dungeon = React.createClass({
             canvas.fillStyle = this.tiles.colors[tile.value]
             var x = tile.position.x * 64
             var y = tile.position.y * 64
-            canvas.fillRect(x, y, 60, 60)
+            canvas.fillRect(x, y, 64, 64)
         }
     },
     componentDidMount: function() {
@@ -34,8 +34,8 @@ var Dungeon = React.createClass({
     },
     tiles: {
         "colors": {
-            0: "#303030",
-            1: "#A4A4A4"
+            0: "#507642",
+            1: "#CCCFBC"
         }
     }
 })
