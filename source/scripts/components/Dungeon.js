@@ -8,16 +8,25 @@ var Dungeon = React.createClass({
         )
     },
     renderStyles: function() {
-        return {
+        var styles = {
             "width": this.props.data.width + "em",
-            "height": this.props.data.height + "em"
+            "height": this.props.data.height + "em",
+            "backgroundColor": this.tiles.colors[0]
         }
+        if(this.props.minimap === true) {
+            styles.position = "absolute"
+            styles.backgroundColor = "#303030"
+        }
+        return styles
     },
     renderCanvas: function() {
         var canvas = this.refs.canvas.getDOMNode().getContext("2d")
         for(var coord in this.props.data.tiles) {
             var tile = this.props.data.tiles[coord]
             canvas.fillStyle = this.tiles.colors[tile.value]
+            if(this.props.minimap === true) {
+                canvas.fillStyle = "#A4A4A4"
+            }
             var x = tile.position.x * 64
             var y = tile.position.y * 64
             canvas.fillRect(x, y, 64, 64)

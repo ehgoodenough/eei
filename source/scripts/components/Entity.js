@@ -8,7 +8,7 @@ var Entity = React.createClass({
         )
     },
     renderStyles: function() {
-        return {
+        var styles = {
             width: "1em",
             height: "1em",
             textAlign: "center",
@@ -20,6 +20,10 @@ var Entity = React.createClass({
             transitionProperty: "top left",
             transitionTimingFunction: "ease-out",
         }
+        if(this.props.blip == true) {
+            styles.backgroundColor = this.props.data.color
+        }
+        return styles
     },
     renderEmote: function() {
         if(this.props.data.emote != undefined) {
