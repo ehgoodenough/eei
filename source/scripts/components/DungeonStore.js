@@ -8,32 +8,15 @@ var DungeonStore = Phlux.createStore({
 		rooms: {},
 		min_width: 10,
 		min_height: 7,
+		adventurer_x: 0,
+		adventurer_y: 0
     },
     initiateStore: function() {
 		var size = 3
 		var room_width = WIDTH - 1
 		var room_height = HEIGHT - 1	
 		
-		//doors
-		/*for (column = 0; column < size; column++)
-		{
-				for(row = 0; row < size; row++)
-				{
-					//horizontal
-					if(row != size - 1)
-					{
-						this.makeRoom(row * WIDTH + Math.floor((room_width / 2)), column * HEIGHT + Math.floor((room_height / 2)), HEIGHT, 1)
-					}
-					
-					//vertical
-					if(column != size - 1)
-					{
-						this.makeRoom(row * WIDTH + Math.floor((room_width / 2)), column * HEIGHT + Math.floor((room_height / 2)), 1, HEIGHT)
-					}
-				}
-		}*/
-		
-		//make room tiles	
+		//empty tree	
 		this.data.tree = {
 			"x": 0,
 			"y": 0,
@@ -41,15 +24,34 @@ var DungeonStore = Phlux.createStore({
 			"height": this.data.height
 		}
 		
+		//partition into spaces
 		this.data.tree = this.partition(this.data.tree)
 		
+		//draw rooms inside spaces
 		this.makeTreeRooms(this.data.tree)		
 		
-		//this.makeTreeDoors(this.data.tree)
+		//figure out which rooms to connect
+		var rooms_to_connect = []
+		rooms_to_connect = this.euler(this.data.tree, rooms_to_connect)
 		
+		var start_room = this.getBoundaries(rooms_to_connect[0])
+		
+		this.data.adventurer_x = Math.floor((start_room.min_x + start_room.max_x) / 2)
+		this.data.adventurer_y = Math.floor((start_room.min_y + start_room.max_y) / 2)
+		
+		//connect rooms
+		this.makeTreeDoors(rooms_to_connect)
+		
+		console.log(rooms_to_connect)
 		console.log(this.data.tree)
 		
     },
+	getStartX: function() {
+		return this.data.adventurer_x
+	},
+	getStartY: function() {
+		return this.data.adventurer_y
+	},
 	getRandomColor: function() {
 		return '#' + (function co(lor){   return (lor +=
   [0,1,2,3,4,5,6,7,8,9,'a','b','c','d','e','f'][Math.floor(Math.random()*16)])
@@ -87,7 +89,7 @@ var DungeonStore = Phlux.createStore({
 						"y": node_y,
 						"width": node_width,
 						"height": cut - node_y,
-						//"color": this.getRandomColor(),
+						"color": this.getRandomColor(),
 						"parent": old_node
 					},
 					"branch1": {
@@ -95,7 +97,7 @@ var DungeonStore = Phlux.createStore({
 						"y": cut,
 						"width": node_width,
 						"height": node_y + node_height - cut,
-						//"color": this.getRandomColor(),
+						"color": this.getRandomColor(),
 						"parent": old_node
 					}
 				}
@@ -139,7 +141,7 @@ var DungeonStore = Phlux.createStore({
 						"y": node_y,
 						"width": cut - node_x,
 						"height": node_height,
-						//"color": this.getRandomColor(),
+						"color": this.getRandomColor(),
 						"parent": old_node
 					},
 					"branch1": {
@@ -147,7 +149,7 @@ var DungeonStore = Phlux.createStore({
 						"y": node_y,
 						"width": node_x + node_width - cut,
 						"height": node_height,
-						//"color": this.getRandomColor(),
+						"color": this.getRandomColor(),
 						"parent": old_node						
 					}
 				}
@@ -165,21 +167,21 @@ var DungeonStore = Phlux.createStore({
 		if(node.x != null)
 		{
 			//offset into partition for random-looking rooms
-			x_offset = Math.floor(Math.random() * node.width) + 1	
-			y_offset = Math.floor(Math.random() * node.height) + 1 
+			node.x_offset = Math.floor(Math.random() * node.width) + 1	
+			node.y_offset = Math.floor(Math.random() * node.height) + 1 
 			
 			//fix offset if it'd reach partition boundary
-			if(node.width - x_offset - 1 < this.data.min_width)
+			if(node.width - node.x_offset - 1 < this.data.min_width)
 			{
-				x_offset = node.width - this.data.min_width
+				node.x_offset = node.width - this.data.min_width
 			}
-			if(node.height - y_offset - 1 < this.data.min_height)
+			if(node.height - node.y_offset - 1 < this.data.min_height)
 			{
-				y_offset = node.height - this.data.min_height
-			}
+				node.y_offset = node.height - this.data.min_height
+			}			
 
 			//oh god slight magic number mods everywhere don't read this
-			this.makeRoom(node.x + x_offset, node.y + y_offset, node.width - x_offset - 1, node.height - y_offset - 1)
+			this.makeRoom(node.x + node.x_offset, node.y + node.y_offset, node.width - node.x_offset - 1, node.height - node.y_offset - 1)
 		}
 		else
 		{
@@ -188,50 +190,176 @@ var DungeonStore = Phlux.createStore({
 		}
 		return;
 	},
-	makeTreeDoors: function(node) {		
-		console.log(node)
-		if(node.x != null && node.sibling != null)
-		{			
-			this.makeDoor(node, node.sibling)
-			return;
+	euler: function(node, node_array) {
+		
+		//console.log("Visiting:", node)
+		if(node.branch0 != null)
+		{
+			this.euler(node.branch0, node_array)
+		}
+		if(node.branch1 != null)
+		{
+			this.euler(node.branch1, node_array)
 		}
 		else
 		{
-			this.makeTreeDoors(node.branch0)
-			this.makeTreeDoors(node.branch1)
+			node_array.push(node)
+			return;
+		}
+		return node_array;
+	},
+	makeTreeDoors: function(node_array) {		
+		for(var i = 0; i < node_array.length - 1; i++)
+		{
+			this.makeDoor(node_array[i], node_array[i + 1])
 		}
 	},
 	makeDoor: function(node1, node2) {
-		console.log(node1, node2)
-		if(node1.x == node2.x) {
-			this.makeDoorVert(node1, node2)
-			return
+		var range1 = this.getBoundaries(node1)
+		var range2 = this.getBoundaries(node2)
+		
+		var x_mis = false
+		var y_mis = false
+		
+		console.log(range1, range2)
+		
+		//if not aligned at all
+		if((range2.min_x > range1.max_x) || (range1.min_x > range2.max_x))
+		{
+			console.log("	x not aligned")
+			x_mis = true
+		}
+		if((range2.min_y > range1.max_y) || (range1.min_y > range2.max_y))
+		{
+				console.log("	y not aligned")
+				y_mis = true
+		}
+		if(x_mis && y_mis)
+		{
+			//needs corner
+			console.log("	misaligned")
 		}
 		else
 		{
-			this.makeDoorHoriz(node1, node2)
-			return
-		}
+			//connect -> horizontal
+			if(x_mis)
+			{
+				console.log("	connecting horiz")
+				this.makeDoorHoriz(node1, node2, range1, range2)
+			}
+			//connect v^ vertical
+			else
+			{
+				console.log("	connecting vert")
+				this.makeDoorVert(node1, node2, range1, range2)
+			}
+		}		
 	},
-	makeDoorVert: function(node1, node2) {
-		var x = Math.floor((Math.random() * node1.width - 1)) + node1.x + 1;
-		var y = node1.y + node1.height;
-		
-		/*if(node1.width < node2.width)
+	makeDoorHoriz: function(node1, node2, range1, range2){
+		var start_x, stop_x, start_y, stop_y, path_y
+		if(range1.max_x < range2.max_x)
 		{
-			x = (Math.random() * node1.width) + node1.x
+			start_x = range1.max_x
 		}
 		else
 		{
-			x = (Math.random() * node2.width) + node2.x
-		}*/
-		this.makeRoom(x, y, 1, 1)
-	},
-	makeDoorHoriz: function(node1, node2) {
-		var x = node1.x + node1.width;
-		var y = Math.floor((Math.random() * node1.height - 1)) + node1.y + 1;
+			start_x = range2.max_x
+		}
 		
-		this.makeRoom(x, y, 1, 1)
+		if(range1.min_x > range2.min_x)
+		{
+			stop_x = range1.min_x
+		}
+		else
+		{
+			stop_x = range2.min_x
+		}
+		
+		if(range1.max_y < range2.max_y)
+		{
+			start_y = range1.max_y
+		}
+		else
+		{
+			start_y = range2.max_y
+		}
+		
+		if(range1.min_y > range2.min_y)
+		{
+			stop_y = range1.min_y
+		}
+		else
+		{
+			stop_y = range2.min_y
+		}
+		
+		
+		path_y = Math.floor(Math.random() * (stop_y - start_y)) + start_y
+		
+		console.log(start_y, stop_y, (stop_y - start_y) + start_y, path_y)
+		
+		this.makeRoom(start_x, path_y, (stop_x - start_x), 1)
+		
+		
+	},
+	makeDoorVert: function(node1, node2, range1, range2){
+	var start_x, stop_x, start_y, stop_y, path_x
+		if(range1.max_x < range2.max_x)
+		{
+			start_x = range1.max_x
+		}
+		else
+		{
+			start_x = range2.max_x
+		}
+		
+		if(range1.min_x > range2.min_x)
+		{
+			stop_x = range1.min_x
+		}
+		else
+		{
+			stop_x = range2.min_x
+		}
+		
+		if(range1.max_y < range2.max_y)
+		{
+			start_y = range1.max_y
+		}
+		else
+		{
+			start_y = range2.max_y
+		}
+		
+		if(range1.min_y > range2.min_y)
+		{
+			stop_y = range1.min_y
+		}
+		else
+		{
+			stop_y = range2.min_y
+		}
+		
+		
+		
+		path_x = Math.floor(Math.random() * (stop_x - start_x)) + start_x
+		
+		console.log(start_x, stop_x, (stop_x - start_x) + start_x, path_x)
+		
+		console.log("connecting path should be:",path_x, start_y, 1, (stop_x - start_x))
+		this.makeRoom(path_x, start_y, 1, (stop_y - start_y))
+	},
+	getBoundaries: function(node) {
+		var minx = node.x + node.x_offset
+		var miny = node.y + node.y_offset
+		var ranges = {
+			"min_x": minx,
+			"max_x":  minx + (node.width - node.x_offset - 1),
+			"min_y": miny,
+			"max_y": miny + (node.height - node.y_offset - 1)
+		}
+		
+		return ranges
 	},
     getTile: function(x, y) {
         x = Math.floor(x)

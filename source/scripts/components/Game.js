@@ -11,11 +11,14 @@ var DungeonStore = require("<scripts>/components/DungeonStore")
 
 var Level = require("<scripts>/references/level.json")
 
+var start_x = DungeonStore.getStartX()
+var start_y = DungeonStore.getStartY()
+
 var AdventurerStore = Phlux.createStore({
     data: {
         position: {
-            x: 10,
-            y: 10
+            x: start_x,
+            y: start_y
         },
         color: "#EEE",
         character: "@"
