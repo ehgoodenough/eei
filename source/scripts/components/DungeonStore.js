@@ -44,7 +44,7 @@ var DungeonStore = Phlux.createStore({
 				{
 					this.data.rooms[index] = this.getBoundaries(rooms_to_connect[index])
 				}
-				
+
 				var start_room = this.getBoundaries(rooms_to_connect[0])
 
 				this.data.adventurer_x = Math.floor((start_room.min_x + start_room.max_x) / 2)

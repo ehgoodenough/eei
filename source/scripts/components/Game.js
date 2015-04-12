@@ -34,6 +34,7 @@ var AdventurerStore = Phlux.createStore({
     },
     onRestartGame: function() {
         this.initiateStore()
+        window.location = window.location
     },
     onKeyW: function() {
 		if(this.data.isDead)
@@ -67,7 +68,7 @@ var AdventurerStore = Phlux.createStore({
                 var monster = MonsterStore.getMonster(this.data.position.x, this.data.position.y + 1)
                 Phlux.triggerAction("AttackMonster", monster.key, 1)
             }
-				else if (ItemStore.getBomb(this.data.position.x, this.data.position.y + 1)) {}			
+				else if (ItemStore.getBomb(this.data.position.x, this.data.position.y + 1)) {}
 			else  {
                 this.data.position.y += 1
 				if(ItemStore.getGold(this.data.position.x, this.data.position.y)) {
@@ -110,7 +111,7 @@ var AdventurerStore = Phlux.createStore({
             if(MonsterStore.getMonster(this.data.position.x + 1, this.data.position.y)) {
                 var monster = MonsterStore.getMonster(this.data.position.x + 1, this.data.position.y)
                 Phlux.triggerAction("AttackMonster", monster.key, 1)
-            } 
+            }
 			else if (ItemStore.getBomb(this.data.position.x + 1, this.data.position.y )) {}
 			else {
                 this.data.position.x += 1
@@ -137,7 +138,7 @@ var AdventurerStore = Phlux.createStore({
 		 ItemStore.placeBomb(this.data.position.x, this.data.position.y)
 		 this.trigger()
 		}
-		
+
 	},
     onAttackAdventurer: function(damage) {
         this.data.life -= damage
@@ -275,8 +276,8 @@ var MonsterStore = Phlux.createStore({
 			var message = "You blew up a " + monster.name + " for " + damage + " damage."
                     Phlux.triggerAction("DisplayMessage", message)
 		}
-		
-        if(monster.life <= 0) {            
+
+        if(monster.life <= 0) {
 			Phlux.triggerAction("DropGold", monster.position)
 			Phlux.triggerAction("DisplayMessage", "The " + monster.name + " is dead.")
             delete this.data[key]
@@ -363,14 +364,14 @@ var ItemStore = Phlux.createStore({
 					for(var y = bomb.position.y - 1; y < bomb.position.y + 2; y++)
 					{
 						var monster = MonsterStore.getMonster(x, y)
-						
+
 						if(AdventurerStore.data.position.x == x && AdventurerStore.data.position.y == y)
 						{
 							Phlux.triggerAction("AttackAdventurer", 999)
 							var message = "You blew yourself up.  Good job."
                     Phlux.triggerAction("DisplayMessage", message, "red")
 						}
-						
+
 						if(monster)
 						{
 							Phlux.triggerAction("AttackMonster", monster.key, 999)
@@ -448,7 +449,7 @@ var Game = React.createClass({
                 <Zoom scale={-12}>
                     <Dungeon data={this.state.dungeon} minimap={true}/>
                     <Entity data={this.state.adventurer} blip={true}/>
-                </Zoom>				
+                </Zoom>
             </GameFrame>
         )
     },
@@ -493,14 +494,14 @@ var Game = React.createClass({
 				data={items.gold[key]}/>
 			)
 		}
-		
+
 		for(var key in items.bombs) {
 			renderings.push(
 				<BombPile key={key}
 				data={items.bombs[key]}/>
 			)
 		}
-		
+
 		return renderings
 	}
 })
