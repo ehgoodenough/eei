@@ -174,6 +174,8 @@ var MonsterStore = Phlux.createStore({
             if(DungeonStore.isUnobstructedLine(monster.position, adventurer.position)) {
                 if(monster.emote !== "angry") {
                     monster.emote = "alarmed"
+					var message = "A " + monster.name + " saw you!!"
+                    Phlux.triggerAction("DisplayMessage", message)
                 }
                 monster.target_position = {
                     "x": adventurer.position.x,
@@ -187,6 +189,8 @@ var MonsterStore = Phlux.createStore({
     },
     onAttackMonster: function(key, damage, melee) {
         var monster = this.data[key]
+		var message = "You attacked a " + monster.name + " for " + damage + " damage."
+                    Phlux.triggerAction("DisplayMessage", message)
         monster.life -= damage
         if(monster.life <= 0) {
             if(melee == true) {

@@ -12,5 +12,33 @@
         "color": "#C33",
         "damage": 2,
         "life": 1
+    },
+	"troll": {
+        "name": "troll",
+        "character": "T",
+        "color": "#00FF00",
+        "damage": 1,
+        "life": 4
+    },
+	"goblin": {
+        "name": "goblin",
+        "character": "g",
+        "color": "#993399",
+        "damage": 1,
+        "life": 1
+    },
+	"sphinx": {
+        "name": "sphinx",
+        "character": "X",
+        "color": "#E3AA24",
+        "damage": 3,
+        "life": 1
+    },
+	"bat": {
+        "name": "bat",
+        "character": "^",
+        "color": "#33334C",
+        "damage": 1,
+        "life": 1
     }
 }
