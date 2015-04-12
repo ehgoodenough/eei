@@ -74,7 +74,7 @@ var DungeonStore = Phlux.createStore({
 			node_height = node.height
 			
 			//if one of the resulting rooms would be smaller than min_width
-			if(cut - node_y < this.data.min_height || node_y + node_height - cut < this.data.min_height)
+			if(cut - node_y <= this.data.min_height || node_y + node_height - cut <= this.data.min_height)
 			{
 				return node;
 			}
@@ -87,7 +87,7 @@ var DungeonStore = Phlux.createStore({
 						"y": node_y,
 						"width": node_width,
 						"height": cut - node_y,
-						////"color": this.getRandomColor(),
+						//"color": this.getRandomColor(),
 						"parent": old_node
 					},
 					"branch1": {
@@ -95,7 +95,7 @@ var DungeonStore = Phlux.createStore({
 						"y": cut,
 						"width": node_width,
 						"height": node_y + node_height - cut,
-						////"color": this.getRandomColor(),
+						//"color": this.getRandomColor(),
 						"parent": old_node
 					}
 				}
@@ -126,7 +126,7 @@ var DungeonStore = Phlux.createStore({
 			node_height = node.height
 			
 			//if one of the resulting rooms would be smaller than min_width
-			if(cut - node_x < this.data.min_width || node_x + node_width - cut < this.data.min_width)
+			if(cut - node_x <= this.data.min_width || node_x + node_width - cut <= this.data.min_width)
 			{
 				return node;
 			}
@@ -139,7 +139,7 @@ var DungeonStore = Phlux.createStore({
 						"y": node_y,
 						"width": cut - node_x,
 						"height": node_height,
-						////"color": this.getRandomColor(),
+						//"color": this.getRandomColor(),
 						"parent": old_node
 					},
 					"branch1": {
@@ -147,7 +147,7 @@ var DungeonStore = Phlux.createStore({
 						"y": node_y,
 						"width": node_x + node_width - cut,
 						"height": node_height,
-						////"color": this.getRandomColor(),
+						//"color": this.getRandomColor(),
 						"parent": old_node						
 					}
 				}
@@ -164,19 +164,21 @@ var DungeonStore = Phlux.createStore({
 	makeTreeRooms: function(node) {
 		if(node.x != null)
 		{
+			//offset into partition for random-looking rooms
 			x_offset = Math.floor(Math.random() * node.width) + 1	
 			y_offset = Math.floor(Math.random() * node.height) + 1 
 			
-			if(node.width - x_offset - 2 < this.data.min_width)
+			//fix offset if it'd reach partition boundary
+			if(node.width - x_offset - 1 < this.data.min_width)
 			{
-				x_offset = this.data.min_width - (node.width - x_offset - 1)
+				x_offset = node.width - this.data.min_width
 			}
-			if(node.height - y_offset - 2 < this.data.min_height)
+			if(node.height - y_offset - 1 < this.data.min_height)
 			{
-				y_offset = this.data.min_height - (node.height - y_offset - 1)
+				y_offset = node.height - this.data.min_height
 			}
-			
-			console.log(node.x + x_offset, node.y + y_offset, node.width - x_offset - 1, node.height - y_offset - 1)
+
+			//oh god slight magic number mods everywhere don't read this
 			this.makeRoom(node.x + x_offset, node.y + y_offset, node.width - x_offset - 1, node.height - y_offset - 1)
 		}
 		else
