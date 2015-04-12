@@ -22,12 +22,14 @@ var DungeonStore = Phlux.createStore({
         for(var x = 0; x < Level.width; x++) {
             for(var y = 0; y < Level.height; y++) {
                 var tile = tiles[y * Level.width + x]
-                this.data.tiles[x + "x" + y] = {
-                    position: {
-                        "x": x,
-                        "y": y
-                    },
-                    "value": tile - 1
+                if(tile === 2) {
+                    this.data.tiles[x + "x" + y] = {
+                        position: {
+                            "x": x,
+                            "y": y
+                        },
+                        "value": tile - 1
+                    }
                 }
             }
         }
@@ -56,6 +58,7 @@ var MonsterStore = Phlux.createStore({
             this.index = 0
         }
         this.data[this.index] = {
+            "emote": "idle",
             "position": position,
             "color": protomonster.color,
             "character": protomonster.character
@@ -65,33 +68,45 @@ var MonsterStore = Phlux.createStore({
     onMoveAdventurer: function(adventurer) {
         for(var key in this.data) {
             var monster = this.data[key]
-            if(this.isInLineOfSight(monster.position, adventurer.position)) {
-                monster.target_position = {
-                    "x": adventurer.position.x,
-                    "y": adventurer.position.y
+            if(monster.emote) {
+                if(monster.emote == "confused") {
+                    monster.emote = "idle"
+                }
+                if(monster.emote == "alarmed") {
+                    monster.emote = "angry"
                 }
             }
             if(monster.target_position) {
                 if(Math.abs(monster.position.x - monster.target_position.x) > 0
                 && monster.position.x < monster.target_position.x
-                && DungeonStore.getTile(monster.position.x + 1, monster.position.y).value === 1) {
+                && DungeonStore.getTile(monster.position.x + 1, monster.position.y)) {
                     monster.position.x += 1
                 } else if(Math.abs(monster.position.x - monster.target_position.x) > 0
                 && monster.position.x > monster.target_position.x
-                && DungeonStore.getTile(monster.position.x - 1, monster.position.y).value === 1) {
+                && DungeonStore.getTile(monster.position.x - 1, monster.position.y)) {
                     monster.position.x -= 1
                 } else if(Math.abs(monster.position.y - monster.target_position.y) > 0
                 && monster.position.y > monster.target_position.y
-                && DungeonStore.getTile(monster.position.x, monster.position.y - 1).value === 1) {
+                && DungeonStore.getTile(monster.position.x, monster.position.y - 1)) {
                     monster.position.y -= 1
                 } else if(Math.abs(monster.position.y - monster.target_position.y) > 0
                 && monster.position.y < monster.target_position.y
-                && DungeonStore.getTile(monster.position.x, monster.position.y + 1).value === 1) {
+                && DungeonStore.getTile(monster.position.x, monster.position.y + 1)) {
                     monster.position.y += 1
                 }
                 if(monster.position.x == monster.target_position.x
                 && monster.position.y == monster.target_position.y) {
+                    monster.emote = "confused"
                     delete monster.target_position
+                }
+            }
+            if(this.isInLineOfSight(monster.position, adventurer.position)) {
+                if(monster.emote != "angry") {
+                    monster.emote = "alarmed"
+                }
+                monster.target_position = {
+                    "x": adventurer.position.x,
+                    "y": adventurer.position.y
                 }
             }
             monster.los = this.getPointsInLine(monster.position, adventurer.position)
@@ -102,7 +117,8 @@ var MonsterStore = Phlux.createStore({
         var points = this.getPointsInLine(alpha, omega)
         for(var index in points) {
             var point = points[index]
-            if(DungeonStore.getTile(point.x, point.y).value !== 1) {
+            console.log(DungeonStore.getTile(point.x, point.y))
+            if(DungeonStore.getTile(point.x, point.y) == undefined) {
                 return false
             }
         }
@@ -116,15 +132,15 @@ var MonsterStore = Phlux.createStore({
             if(x > 0) {
                 for(var lx = 0, ly = 0; lx <= x; lx++, ly += y / x) {
                     points.push({
-                        "x": alpha.x + Math.floor(lx),
-                        "y": alpha.y + Math.floor(ly)
+                        "x": alpha.x + Math.round(lx),
+                        "y": alpha.y + Math.round(ly)
                     })
                 }
             } else if(x < 0) {
                 for(var lx = 0, ly = 0; lx >= x; lx--, ly -= y / x) {
                     points.push({
-                        "x": alpha.x + Math.floor(lx),
-                        "y": alpha.y + Math.floor(ly)
+                        "x": alpha.x + Math.round(lx),
+                        "y": alpha.y + Math.round(ly)
                     })
                 }
             }
@@ -132,15 +148,15 @@ var MonsterStore = Phlux.createStore({
             if(y > 0) {
                 for(var lx = 0, ly = 0; ly <= y; ly++, lx += x / y) {
                     points.push({
-                        "x": alpha.x + Math.floor(lx),
-                        "y": alpha.y + Math.floor(ly)
+                        "x": alpha.x + Math.round(lx),
+                        "y": alpha.y + Math.round(ly)
                     })
                 }
             } else if(y < 0) {
                 for(var lx = 0, ly = 0; ly >= y; ly--, lx -= x / y) {
                     points.push({
-                        "x": alpha.x + Math.floor(lx),
-                        "y": alpha.y + Math.floor(ly)
+                        "x": alpha.x + Math.round(lx),
+                        "y": alpha.y + Math.round(ly)
                     })
                 }
             }
@@ -159,28 +175,28 @@ var AdventurerStore = Phlux.createStore({
         character: "@"
     },
     onKeyW: function() {
-        if(DungeonStore.getTile(this.data.position.x, this.data.position.y - 1).value === 1) {
+        if(DungeonStore.getTile(this.data.position.x, this.data.position.y - 1)) {
             this.data.position.y -= 1
             this.trigger()
             Phlux.triggerAction("MoveAdventurer", this.data)
         }
     },
     onKeyS: function() {
-        if(DungeonStore.getTile(this.data.position.x, this.data.position.y + 1).value === 1) {
+        if(DungeonStore.getTile(this.data.position.x, this.data.position.y + 1)) {
             this.data.position.y += 1
             this.trigger()
             Phlux.triggerAction("MoveAdventurer", this.data)
         }
     },
     onKeyA: function() {
-        if(DungeonStore.getTile(this.data.position.x - 1, this.data.position.y).value === 1) {
+        if(DungeonStore.getTile(this.data.position.x - 1, this.data.position.y)) {
             this.data.position.x -= 1
             this.trigger()
             Phlux.triggerAction("MoveAdventurer", this.data)
         }
     },
     onKeyD: function() {
-        if(DungeonStore.getTile(this.data.position.x + 1, this.data.position.y).value === 1) {
+        if(DungeonStore.getTile(this.data.position.x + 1, this.data.position.y)) {
             this.data.position.x += 1
             this.trigger()
             Phlux.triggerAction("MoveAdventurer", this.data)
@@ -203,7 +219,6 @@ var Game = React.createClass({
                     <Dungeon data={this.state.dungeon}/>
                     <Entity data={this.state.adventurer}/>
                     {this.renderEntities(this.state.monsters)}
-                    <LineOfSight data={this.state.monsters[0].los}/>
                 </Camera>
             </GameFrame>
         )
@@ -221,7 +236,7 @@ var Game = React.createClass({
     }
 })
 
-var LineOfSight = React.createClass({
+var Points = React.createClass({
     render: function() {
         var renderings = []
         for(var key in this.props.data) {

@@ -3,6 +3,7 @@ var Entity = React.createClass({
         return (
             <div style={this.renderStyles()}>
                 {this.props.data.character}
+                {this.renderEmote()}
             </div>
         )
     },
@@ -18,6 +19,44 @@ var Entity = React.createClass({
             transitionDuration: "0.25s",
             transitionProperty: "top left",
             transitionTimingFunction: "ease-out",
+        }
+    },
+    renderEmote: function() {
+        if(this.props.data.emote != undefined) {
+            return (
+                <Emote data={this.props.data.emote}/>
+            )
+        }
+    }
+})
+
+var Emote = React.createClass({
+    render: function() {
+        return (
+            <div style={this.renderStyles()}>
+                {this.renderText()}
+            </div>
+        )
+    },
+    renderStyles: function() {
+        return {
+            left: "0em",
+            right: "0em",
+            top: "-1em",
+            position: "absolute",
+            textAlign: "center"
+
+        }
+    },
+    renderText: function() {
+        if(this.props.data == "alarmed") {
+             return "!!"
+        } else if(this.props.data == "confused") {
+            return "?!"
+        } else if(this.props.data == "idle") {
+            return null
+        } else {
+            return ".."
         }
     }
 })
