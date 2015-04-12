@@ -7,8 +7,10 @@
     "url": "https://github.com/ehgoodenough/slush-react-game"
   },
   "dependencies": {
+    "node-uuid": "^1.4.3",
     "react": "~0.12.2",
-    "vkey": "~1.0.0"
+    "vkey": "~1.0.0",
+    "yabh": "^1.0.0"
   },
   "devDependencies": {
     "aliasify": "~1.7.2",

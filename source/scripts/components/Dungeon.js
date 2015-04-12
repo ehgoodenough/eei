@@ -34,8 +34,8 @@ var Dungeon = React.createClass({
     },
     tiles: {
         "colors": {
-            0: "#303030",
-            1: "#A4A4A4"
+            0: "#507642",
+            1: "#CCCFBC"
         }
     }
 })

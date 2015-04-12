@@ -1,0 +1,14 @@
+{
+    "demon": {
+        "name": "demon",
+        "character": "&",
+        "color": "#339",
+        "damage": 1
+    },
+    "dragon": {
+        "name": "dragon",
+        "character": "$",
+        "color": "#C33",
+        "damage": 2
+    }
+}

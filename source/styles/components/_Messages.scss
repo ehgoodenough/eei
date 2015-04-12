@@ -1,0 +1,29 @@
+@mixin stroke($color, $width)
+{
+    $shadow: 0 0 0 transparent;
+
+    @for $r from -5 through 5
+    {
+        @for $c from -5 through 5
+        {
+            $x: $c / ($width * 5);
+            $y: $r / ($width * 5);
+
+            $shadow: #{$shadow}, #{$x}em #{$y}em 0 $color;
+        }
+    }
+
+    text-shadow: $shadow;
+}
+
+.message
+{
+    color: $white;
+    @include stroke($black, 8);
+}
+
+.heart
+{
+    color: $red;
+    @include stroke($black, 45);
+}

@@ -1,17 +1,17 @@
 var Phlux = require("<scripts>/utilities/Phlux")
 
 var DungeonStore = Phlux.createStore({
-    data: {
-        width: 60,
-        height: 45,
-        tiles: {},
-		rooms: {},
-		min_width: 10,
-		min_height: 7,
-		adventurer_x: 0,
-		adventurer_y: 0
-    },
     initiateStore: function() {
+		this.data = {
+			width: 60,
+			height: 45,
+			tiles: {},
+			rooms: {},
+			min_width: 10,
+			min_height: 7,
+			adventurer_x: 0,
+			adventurer_y: 0
+		}
 		var size = 3
 		var room_width = WIDTH - 1
 		var room_height = HEIGHT - 1	
@@ -41,6 +41,7 @@ var DungeonStore = Phlux.createStore({
 		
 		//connect rooms
 		this.makeTreeDoors(rooms_to_connect)
+		this.trigger()
 		
     },
 	getStartX: function() {
@@ -442,11 +443,6 @@ var DungeonStore = Phlux.createStore({
 		
 		return ranges
 	},
-    getTile: function(x, y) {
-        x = Math.floor(x)
-        y = Math.floor(y)
-        return this.data.tiles[x + "x" + y]
-    },
 	makeRoom: function(x, y, width, height) {
 		total_width = width + x
 		total_height = height + y
@@ -465,7 +461,137 @@ var DungeonStore = Phlux.createStore({
 				}			
 			}
 		}
-	}
+	},
+	onRestartGame: function() {
+        this.initiateStore()
+    },
+    getTile: function(x, y) {
+        return this.data.tiles[Math.floor(x) + "x" + Math.floor(y)]
+    },
+    getNeighboringTiles: function(point) {
+        var tiles = []
+        var northernTile = this.getTile(point.x, point.y - 1)
+        if(northernTile !== undefined) {
+            tiles.push(northernTile)
+        }
+        var southernTile = this.getTile(point.x, point.y + 1)
+        if(southernTile !== undefined) {
+            tiles.push(southernTile)
+        }
+        var westernTile = this.getTile(point.x - 1, point.y)
+        if(westernTile !== undefined) {
+            tiles.push(westernTile)
+        }
+        var easternTile = this.getTile(point.x + 1, point.y)
+        if(easternTile !== undefined) {
+            tiles.push(easternTile)
+        }
+        return tiles
+    },
+    getShortestPath: function(initial_point, final_point) {
+        var path = new Array()
+        var closed_points = new Object()
+        var open_points = new BinaryHeap(function(point) {
+            return point.score
+        })
+        initial_point = {
+            "x": initial_point.x,
+            "y": initial_point.y,
+            "score": 0
+        }
+        final_point = {
+            "x": final_point.x,
+            "y": final_point.y
+        }
+        closed_points[initial_point.x + "x" + initial_point.y] = initial_point
+        open_points.push(initial_point)
+        var heuristic = function(initial_point, final_point) {
+            var x = Math.abs(initial_point.x - final_point.x)
+            var y = Math.abs(initial_point.y - final_point.y)
+            return x + y
+        }
+        while(open_points.size() > 0) {
+            var current_point = open_points.pop()
+            if(current_point.x == final_point.x
+            && current_point.y == final_point.y) {
+                path.unshift(current_point)
+                break;
+            }
+            var neighboring_tiles = this.getNeighboringTiles(current_point)
+            for(var index in neighboring_tiles) {
+                var neighbor_tile = neighboring_tiles[index]
+                var neighbor_point = {
+                    x: neighbor_tile.position.x,
+                    y: neighbor_tile.position.y,
+                    previous_point: current_point,
+                    score: current_point.score + 1
+                }
+                neighbor_point.score += heuristic(neighbor_point, final_point)
+                var neighbor_coords = neighbor_point.x + "x" + neighbor_point.y
+                if(closed_points[neighbor_coords] === undefined) {
+                    closed_points[neighbor_coords] = neighbor_point
+                    open_points.push(neighbor_point)
+                }
+            }
+        }
+        if(path.length > 0) {
+            while(path[0].previous_point !== undefined
+            && path[0].previous_point.previous_point !== undefined) {
+                var point = path[0].previous_point
+                path.unshift(point)
+            }
+        }
+        return path
+    },
+    isUnobstructedLine: function(initial_point, final_point) {
+        var points = this.getPointLine(initial_point, final_point)
+        for(var index in points) {
+            var point = points[index]
+            if(this.getTile(point.x, point.y) === undefined) {
+                return false
+            }
+        }
+        return true
+    },
+    getPointLine: function(initial_point, final_point) {
+        var x = final_point.x - initial_point.x
+        var y = final_point.y - initial_point.y
+        var points = new Array()
+        if(Math.abs(x) >= Math.abs(y)) {
+            if(x > 0) {
+                for(var lx = 0, ly = 0; lx <= x; lx++, ly += y / x) {
+                    points.push({
+                        "x": initial_point.x + Math.round(lx),
+                        "y": initial_point.y + Math.round(ly)
+                    })
+                }
+            } else if(x < 0) {
+                for(var lx = 0, ly = 0; lx >= x; lx--, ly -= y / x) {
+                    points.push({
+                        "x": initial_point.x + Math.round(lx),
+                        "y": initial_point.y + Math.round(ly)
+                    })
+                }
+            }
+        } else {
+            if(y > 0) {
+                for(var lx = 0, ly = 0; ly <= y; ly++, lx += x / y) {
+                    points.push({
+                        "x": initial_point.x + Math.round(lx),
+                        "y": initial_point.y + Math.round(ly)
+                    })
+                }
+            } else if(y < 0) {
+                for(var lx = 0, ly = 0; ly >= y; ly--, lx -= x / y) {
+                    points.push({
+                        "x": initial_point.x + Math.round(lx),
+                        "y": initial_point.y + Math.round(ly)
+                    })
+                }
+            }
+        }
+        return points
+    }
 })
 
 module.exports = DungeonStore
