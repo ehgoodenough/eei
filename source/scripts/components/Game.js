@@ -104,20 +104,36 @@ var MonsterStore = Phlux.createStore({
         var rooms = DungeonStore.getRooms()
         for(var index = 1; index < rooms.length - 1; index++) {
             var room = rooms[index]
-            this.addMonstersToRoom(room, 1)
+            this.addMonstersToRoom(room, 1, false)
         }
-        this.addMonstersToRoom(rooms[rooms.length - 1], 3)
+        this.addMonstersToRoom(rooms[rooms.length - 1], 2, false)
+        this.addMonstersToRoom(rooms[rooms.length - 1], 1, true)
         this.trigger()
     },
-    addMonstersToRoom: function(room, amount)
+    addMonstersToRoom: function(room, amount, isRare)
     {
         for(var index = 0; index < amount; index++) {
             var width = room.max_x - room.min_x
             var height = room.max_y - room.min_y
             var x = Math.floor(Math.random() * width) + room.min_x
             var y = Math.floor(Math.random() * height) + room.min_y
-            this.addMonster(MonsterData.dragon, {"x": x, "y": y})
+            var protomonster
+            if(isRare) {
+                protomonster = this.getRandomProperty(MonsterData.rare)
+            } else {
+                protomonster = this.getRandomProperty(MonsterData.common)
+            }
+            this.addMonster(protomonster, {"x": x, "y": y})
         }
+    },
+    getRandomProperty: function(obj) {
+        var count = 0, result;
+        for (var prop in obj) {
+            if (Math.random() < 1/++count) {
+                result = obj[prop];
+            }
+        }
+        return result
     },
     onRestartGame: function() {
         this.initiateStore()
@@ -195,6 +211,12 @@ var MonsterStore = Phlux.createStore({
                 Phlux.triggerAction("DropGold", monster.position)
             }
             delete this.data[key]
+            if(Object.keys(this.data).length <= 0) {
+                Phlux.triggerAction("DisplayMessage", "Congratulations! You've won!")
+                window.setTimeout(function() {
+                    Phlux.triggerAction("RestartGame")
+                }, 5000)
+            }
         }
         this.trigger()
     },
@@ -282,8 +304,6 @@ var Game = React.createClass({
                     <Dungeon data={this.state.dungeon}/>
                     <Entity data={this.state.adventurer}/>
                     {this.renderEntities(this.state.monsters)}
-                    {this.renderPoints(this.state.monsters, "line", "red")}
-                    {this.renderPoints(this.state.monsters, "path", "yellow")}
                 </Camera>
                 <AdventurerStatus data={this.state.adventurer}/>
                 <Messages data={this.state.messages}/>

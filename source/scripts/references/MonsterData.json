@@ -1,16 +1,69 @@
 {
-    "demon": {
-        "name": "demon",
-        "character": "&",
-        "color": "#339",
-        "damage": 1,
-        "life": 2
+    "common": {
+        "demon": {
+            "name": "demon",
+            "character": "&",
+            "color": "#339",
+            "damage": 1,
+            "life": 2
+        },
+        "sphinx": {
+            "name": "sphinx",
+            "character": "X",
+            "color": "#E3AA24 ",
+            "damage": 3,
+            "life": 1
+        },
+        "orc": {
+            "name": "orc",
+            "character": "O",
+            "color": "#365959",
+            "damage": 2,
+            "life": 1
+        },
+        "snake": {
+            "name": "snake",
+            "character": "s",
+            "color": "#18AB1A",
+            "damage": 0,
+            "life": 3
+        },
+        "goblin": {
+            "name": "goblin",
+            "character": "g",
+            "color": "#993399 ",
+            "damage": 1,
+            "life": 1
+        },
+        "bat": {
+            "name": "bat",
+            "character": "^",
+            "color": "#33334C ",
+            "damage": 0,
+            "life": 1
+        }
     },
-    "dragon": {
-        "name": "dragon",
-        "character": "$",
-        "color": "#C33",
-        "damage": 2,
-        "life": 1
+    "rare": {
+        "dragon": {
+            "name": "dragon",
+            "character": "$",
+            "color": "#C33",
+            "damage": 3,
+            "life": 2
+        },
+        "cockatrice": {
+            "name": "cockatrice",
+            "character": "%",
+            "color": "#F0E87A",
+            "damage": 2,
+            "life": 2
+        },
+        "troll": {
+            "name": "troll",
+            "character": "T",
+            "color": "#00FF00 ",
+            "damage": 1,
+            "life": 4
+        },
     }
 }
