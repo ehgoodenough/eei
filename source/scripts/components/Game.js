@@ -1,15 +1,62 @@
+var UUID = require("node-uuid")
 var BinaryHeap = require("yabh")
 var Phlux = require("<scripts>/utilities/Phlux")
 var LoopListenerMixin = require("<scripts>/utilities/LoopListenerMixin")
 var KeyboardListenerMixin = require("<scripts>/utilities/KeyboardListenerMixin")
 
 var GameFrame = require("<scripts>/components/GameFrame")
+var Point = require("<scripts>/components/Point")
 var Zoom = require("<scripts>/components/Zoom")
 var Camera = require("<scripts>/components/Camera")
 var Dungeon = require("<scripts>/components/Dungeon")
 var Entity = require("<scripts>/components/Entity")
 
-var Level = require("<scripts>/references/level.json")
+var DungeonData = require("<scripts>/references/DungeonData.json")
+var MonsterData = require("<scripts>/references/MonsterData.json")
+
+var AdventurerStore = Phlux.createStore({
+    data: {
+        position: {
+            x: 9,
+            y: 9
+        },
+        color: "#EEE",
+        character: "@",
+        health: "3"
+    },
+    onKeyW: function() {
+        if(DungeonStore.getTile(this.data.position.x, this.data.position.y - 1)) {
+            this.data.position.y -= 1
+            Phlux.triggerAction("MoveAdventurer", this.data)
+            this.trigger()
+        }
+    },
+    onKeyS: function() {
+        if(DungeonStore.getTile(this.data.position.x, this.data.position.y + 1)) {
+            this.data.position.y += 1
+            Phlux.triggerAction("MoveAdventurer", this.data)
+            this.trigger()
+        }
+    },
+    onKeyA: function() {
+        if(DungeonStore.getTile(this.data.position.x - 1, this.data.position.y)) {
+            this.data.position.x -= 1
+            Phlux.triggerAction("MoveAdventurer", this.data)
+            this.trigger()
+        }
+    },
+    onKeyD: function() {
+        if(DungeonStore.getTile(this.data.position.x + 1, this.data.position.y)) {
+            this.data.position.x += 1
+            Phlux.triggerAction("MoveAdventurer", this.data)
+            this.trigger()
+        }
+    },
+    "onKey.": function() {
+        Phlux.triggerAction("MoveAdventurer", this.data)
+    }
+})
+
 var DungeonStore = Phlux.createStore({
     data: {
         width: 20,
@@ -17,30 +64,28 @@ var DungeonStore = Phlux.createStore({
         tiles: {}
     },
     initiateStore: function() {
-        this.data.width = Level.width
-        this.data.height = Level.height
-        var tiles = Level.layers[0].data
-        for(var x = 0; x < Level.width; x++) {
-            for(var y = 0; y < Level.height; y++) {
-                var tile = tiles[y * Level.width + x]
-                if(tile === 2) {
+        this.data.width = DungeonData.width
+        this.data.height = DungeonData.height
+        var tiles = DungeonData.layers[0].data
+        for(var x = 0; x < DungeonData.width; x++) {
+            for(var y = 0; y < DungeonData.height; y++) {
+                var tile = tiles[y * DungeonData.width + x] - 1
+                if(tile === 1) {
                     this.data.tiles[x + "x" + y] = {
                         position: {
                             "x": x,
                             "y": y
                         },
-                        "value": tile - 1
+                        "value": tile
                     }
                 }
             }
         }
     },
     getTile: function(x, y) {
-        x = Math.floor(x)
-        y = Math.floor(y)
-        return this.data.tiles[x + "x" + y]
+        return this.data.tiles[Math.floor(x) + "x" + Math.floor(y)]
     },
-    getTileNeighbors: function(point) {
+    getNeighboringTiles: function(point) {
         var tiles = []
         var northernTile = this.getTile(point.x, point.y - 1)
         if(northernTile !== undefined) {
@@ -60,45 +105,49 @@ var DungeonStore = Phlux.createStore({
         }
         return tiles
     },
-    getShortestPath: function(alpha_point, omega_point) {
+    getShortestPath: function(initial_point, final_point) {
         var path = new Array()
         var closed_points = new Object()
         var open_points = new BinaryHeap(function(point) {
             return point.score
         })
-        var first_point = {
-            "x": alpha_point.x,
-            "y": alpha_point.y,
+        initial_point = {
+            "x": initial_point.x,
+            "y": initial_point.y,
             "score": 0
         }
-        closed_points[first_point.x + "x" + first_point.y] = first_point
-        open_points.push(first_point)
-        var heuristic = function(alpha_point, omega_point) {
-            var x = Math.abs(alpha_point.x - omega_point.x)
-            var y = Math.abs(alpha_point.y - omega_point.y)
+        final_point = {
+            "x": final_point.x,
+            "y": final_point.y
+        }
+        closed_points[initial_point.x + "x" + initial_point.y] = initial_point
+        open_points.push(initial_point)
+        var heuristic = function(initial_point, final_point) {
+            var x = Math.abs(initial_point.x - final_point.x)
+            var y = Math.abs(initial_point.y - final_point.y)
             return x + y
         }
         while(open_points.size() > 0) {
             var current_point = open_points.pop()
-            if(current_point.x == omega_point.x
-            && current_point.y == omega_point.y) {
+            if(current_point.x == final_point.x
+            && current_point.y == final_point.y) {
                 path.unshift(current_point)
                 break;
             }
-            var neighboring_tiles = this.getTileNeighbors(current_point)
+            var neighboring_tiles = this.getNeighboringTiles(current_point)
             for(var index in neighboring_tiles) {
-                var tile = neighboring_tiles[index]
-                var point = {
-                    x: tile.position.x,
-                    y: tile.position.y,
+                var neighbor_tile = neighboring_tiles[index]
+                var neighbor_point = {
+                    x: neighbor_tile.position.x,
+                    y: neighbor_tile.position.y,
                     previous_point: current_point,
                     score: current_point.score + 1
                 }
-                point.score += heuristic(point, omega_point)
-                var coords = point.x + "x" + point.y
-                if(closed_points[coords] === undefined) {
-                    closed_points[coords] = current_point
-                    open_points.push(point)
+                neighbor_point.score += heuristic(neighbor_point, final_point)
+                var neighbor_coords = neighbor_point.x + "x" + neighbor_point.y
+                if(closed_points[neighbor_coords] === undefined) {
+                    closed_points[neighbor_coords] = neighbor_point
+                    open_points.push(neighbor_point)
                 }
             }
         }
@@ -111,33 +160,33 @@ var DungeonStore = Phlux.createStore({
         }
         return path
     },
-    isInLineOfSight: function(alpha, omega) {
-        var points = this.getPointsInLine(alpha, omega)
+    isUnobstructedLine: function(initial_point, final_point) {
+        var points = this.getPointLine(initial_point, final_point)
         for(var index in points) {
             var point = points[index]
-            if(this.getTile(point.x, point.y) == undefined) {
+            if(this.getTile(point.x, point.y) === undefined) {
                 return false
             }
         }
         return true
     },
-    getPointsInLine: function(alpha, omega) {
-        var x = omega.x - alpha.x
-        var y = omega.y - alpha.y
+    getPointLine: function(initial_point, final_point) {
+        var x = final_point.x - initial_point.x
+        var y = final_point.y - initial_point.y
         var points = new Array()
         if(Math.abs(x) >= Math.abs(y)) {
             if(x > 0) {
                 for(var lx = 0, ly = 0; lx <= x; lx++, ly += y / x) {
                     points.push({
-                        "x": alpha.x + Math.round(lx),
-                        "y": alpha.y + Math.round(ly)
+                        "x": initial_point.x + Math.round(lx),
+                        "y": initial_point.y + Math.round(ly)
                     })
                 }
             } else if(x < 0) {
                 for(var lx = 0, ly = 0; lx >= x; lx--, ly -= y / x) {
                     points.push({
-                        "x": alpha.x + Math.round(lx),
-                        "y": alpha.y + Math.round(ly)
+                        "x": initial_point.x + Math.round(lx),
+                        "y": initial_point.y + Math.round(ly)
                     })
                 }
             }
@@ -145,15 +194,15 @@ var DungeonStore = Phlux.createStore({
             if(y > 0) {
                 for(var lx = 0, ly = 0; ly <= y; ly++, lx += x / y) {
                     points.push({
-                        "x": alpha.x + Math.round(lx),
-                        "y": alpha.y + Math.round(ly)
+                        "x": initial_point.x + Math.round(lx),
+                        "y": initial_point.y + Math.round(ly)
                     })
                 }
             } else if(y < 0) {
                 for(var lx = 0, ly = 0; ly >= y; ly--, lx -= x / y) {
                     points.push({
-                        "x": alpha.x + Math.round(lx),
-                        "y": alpha.y + Math.round(ly)
+                        "x": initial_point.x + Math.round(lx),
+                        "y": initial_point.y + Math.round(ly)
                     })
                 }
             }
@@ -162,110 +211,103 @@ var DungeonStore = Phlux.createStore({
     }
 })
 
-var MonsterData = {
-    demon: {
-        character: "&",
-        color: "#339"
-    },
-    dragon: {
-        character: "$",
-        color: "#C33"
-    }
-}
-
 var MonsterStore = Phlux.createStore({
     initiateStore: function() {
-        //this.addMonster(MonsterData.demon, {x: 2, y: 2})
         this.addMonster(MonsterData.dragon, {x: 2, y: 2})
+        this.addMonster(MonsterData.demon, {x: 17, y: 5})
     },
     addMonster: function(protomonster, position) {
-        if(this.index === undefined) {
-            this.index = 0
-        }
-        this.data[this.index] = {
+        var key = UUID.v4()
+        this.data[key] = {
+            "key": key,
+            "path": [],
             "emote": "idle",
             "position": position,
+            "name": protomonster.name,
             "color": protomonster.color,
+            "damage": protomonster.damage,
             "character": protomonster.character
         }
-        this.index += 1
     },
     onMoveAdventurer: function(adventurer) {
         for(var key in this.data) {
             var monster = this.data[key]
             if(monster.emote) {
-                if(monster.emote == "confused") {
+                if(monster.emote === "confused") {
                     monster.emote = "idle"
                 }
-                if(monster.emote == "alarmed") {
+                if(monster.emote === "alarmed") {
                     monster.emote = "angry"
                 }
             }
-            if(monster.target_position) {
-                monster.path = DungeonStore.getShortestPath(monster.position, monster.target_position)
-                monster.position.x = monster.path[0].x
-                monster.position.y = monster.path[0].y
-                if(monster.position.x == adventurer.position.x
-                && monster.position.y == adventurer.position.y) {
-                    console.log("bam you dead")
+            if(monster.path.length > 0) {
+                var next_position = monster.path.shift()
+                if(next_position.x == adventurer.position.x
+                && next_position.y == adventurer.position.y) {
+                    monster.path.unshift(next_position)
+                    adventurer.health -= monster.damage
+                    var message = "A " + monster.name + " attacks you for " + monster.damage + " damage."
+                    Phlux.triggerAction("DisplayMessage", message)
+                } else {
+                    monster.previous_position = monster.position
+                    monster.position = {
+                        "x": next_position.x,
+                        "y": next_position.y
+                    }
                 }
-                if(monster.position.x == monster.target_position.x
-                && monster.position.y == monster.target_position.y) {
-                    delete monster.target_position
+            } else {
+                if(monster.emote === "angry"
+                || monster.emote === "alarmed") {
                     monster.emote = "confused"
                 }
             }
-            if(DungeonStore.isInLineOfSight(monster.position, adventurer.position)) {
-                if(monster.emote != "angry") {
+            if(DungeonStore.isUnobstructedLine(monster.position, adventurer.position)) {
+                if(monster.emote !== "angry") {
                     monster.emote = "alarmed"
                 }
                 monster.target_position = {
                     "x": adventurer.position.x,
                     "y": adventurer.position.y
                 }
+                monster.path = DungeonStore.getShortestPath(monster.position, monster.target_position)
             }
-            monster.line_of_sight = DungeonStore.getPointsInLine(monster.position, adventurer.position)
+            monster.line = DungeonStore.getPointLine(monster.position, adventurer.position)
             this.trigger()
         }
     }
 })
 
-var AdventurerStore = Phlux.createStore({
-    data: {
-        position: {
-            x: 9,
-            y: 9
-        },
-        color: "#EEE",
-        character: "@"
-    },
-    onKeyW: function() {
-        if(DungeonStore.getTile(this.data.position.x, this.data.position.y - 1)) {
-            this.data.position.y -= 1
+var MessageStore = Phlux.createStore({
+    data: new Array(),
+    initiateStore: function() {
+        this.data.unshift({
+            "key": UUID.v4(),
+            "text": "Welcome to Unnamed! :]"
+        })
+        window.setTimeout(function() {
+            this.data.unshift({
+                "key": UUID.v4(),
+                "text": "Try not to die."
+            })
             this.trigger()
-            Phlux.triggerAction("MoveAdventurer", this.data)
-        }
-    },
-    onKeyS: function() {
-        if(DungeonStore.getTile(this.data.position.x, this.data.position.y + 1)) {
-            this.data.position.y += 1
+        }.bind(this), 2000)
+        window.setTimeout(function() {
+            this.data.unshift({
+                "key": UUID.v4(),
+                "text": "Used WASD to move."
+            })
             this.trigger()
-            Phlux.triggerAction("MoveAdventurer", this.data)
-        }
+        }.bind(this), 4000)
     },
-    onKeyA: function() {
-        if(DungeonStore.getTile(this.data.position.x - 1, this.data.position.y)) {
-            this.data.position.x -= 1
-            this.trigger()
-            Phlux.triggerAction("MoveAdventurer", this.data)
+    onDisplayMessage: function(text) {
+        this.data.unshift({
+            "key": UUID.v4(),
+            "text": text
+        })
+        if(this.data.length > 3) {
+            this.data.pop()
         }
-    },
-    onKeyD: function() {
-        if(DungeonStore.getTile(this.data.position.x + 1, this.data.position.y)) {
-            this.data.position.x += 1
-            this.trigger()
-            Phlux.triggerAction("MoveAdventurer", this.data)
-        }
+        this.trigger()
     }
 })
 
@@ -275,6 +317,7 @@ var Game = React.createClass({
         KeyboardListenerMixin,
         Phlux.connectStore(DungeonStore, "dungeon"),
         Phlux.connectStore(MonsterStore, "monsters"),
+        Phlux.connectStore(MessageStore, "messages"),
         Phlux.connectStore(AdventurerStore, "adventurer")
     ],
     render: function() {
@@ -284,9 +327,10 @@ var Game = React.createClass({
                     <Dungeon data={this.state.dungeon}/>
                     <Entity data={this.state.adventurer}/>
                     {this.renderEntities(this.state.monsters)}
-                    <Points data={this.state.monsters[0].path} color={"red"}/>
-                    <Points data={this.state.monsters[0].line_of_sight} color={"yellow"}/>
+                    {this.renderPoints(this.state.monsters, "line", "red")}
+                    {this.renderPoints(this.state.monsters, "path", "yellow")}
                 </Camera>
+                <Messages data={this.state.messages}/>
             </GameFrame>
         )
     },
@@ -300,33 +344,97 @@ var Game = React.createClass({
             )
         }
         return renderings
+    },
+    renderPoints: function(entities, attribute, color) {
+        var points = {}
+        for(var key in entities) {
+            var entity = entities[key]
+            for(var index in entity[attribute]) {
+                var point = entity[attribute][index]
+                if(points[point.x + "x" + point.y] === undefined) {
+                    points[point.x + "x" + point.y] = point
+                }
+            }
+        }
+        var renderings = []
+        for(var key in points) {
+            var point = points[key]
+            renderings.push(
+                <Point key={key}
+                    data={point}
+                    color={color}/>
+            )
+        }
+        return renderings
     }
 })
 
-var Points = React.createClass({
+var Messages = React.createClass({
     render: function() {
-        var renderings = []
-        for(var key in this.props.data) {
-            var point = this.props.data[key]
-            renderings.push(
-                <div key={key} style={this.renderStyles(point)}/>
-            )
-        }
         return (
-            <div>
-                {renderings}
+            <div style={this.renderStyles()}>
+                {this.renderMessages()}
             </div>
         )
     },
-    renderStyles: function(point) {
+    renderStyles: function() {
         return {
-            width: "1em",
-            height: "1em",
-            opacity: "0.25",
-            top: point.y + "em",
-            left: point.x + "em",
-            backgroundColor: this.props.color,
-            position: "absolute"
+            left: "0.25em",
+            right: "0.25em",
+            bottom: "0.25em",
+            position: "absolute",
+            transitionDuration: "0.25s"
+        }
+    },
+    renderMessages: function() {
+        var renderings = []
+        for(var index in this.props.data) {
+            var message = this.props.data[index]
+            renderings.unshift(
+                <Message data={message}
+                    key={message.key}
+                    index={index}/>
+            )
+        }
+        return renderings
+    }
+})
+
+var Message = React.createClass({
+    getInitialState: function() {
+        return {
+            index: -1
+        }
+    },
+    render: function() {
+        return (
+            <div style={this.renderStyles()}>
+                {this.props.data.text}
+            </div>
+        )
+    },
+    componentDidMount: function() {
+        window.setTimeout(function(){
+            this.setState({
+                index: this.props.index
+            })
+        }.bind(this), 1)
+    },
+    componentWillReceiveProps: function(props) {
+        this.setState({
+            index: props.index
+        })
+    },
+    renderStyles: function() {
+        return {
+            color: "#EEE",
+            fontSize: "0.75em",
+            position: "absolute",
+            opacity: (3 - this.state.index) / 3,
+            bottom: this.state.index * 1.25 + "em",
+            transitionDuration: "0.25s",
+            transitionProperty: "top opacity",
+            transitionTimingFunction: "ease-out"
         }
     }
 })
