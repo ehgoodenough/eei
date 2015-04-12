@@ -40,7 +40,7 @@ var DungeonStore = Phlux.createStore({
 				//figure out which rooms to connect
 				var rooms_to_connect = []
 				rooms_to_connect = this.euler(this.data.tree, rooms_to_connect)
-
+				this.data.rooms = rooms_to_connect
 				var start_room = this.getBoundaries(rooms_to_connect[0])
 
 				this.data.adventurer_x = Math.floor((start_room.min_x + start_room.max_x) / 2)
@@ -59,8 +59,9 @@ var DungeonStore = Phlux.createStore({
 				}
 			}
 		}
-
-        console.log(this.data.rooms)
+    },
+    getRooms: function() {
+        return this.data.rooms
     },
 	getStartX: function() {
 		return this.data.adventurer_x
@@ -122,51 +123,43 @@ var DungeonStore = Phlux.createStore({
 	},
 	partition_horizontal: function(node) {
 		var cut_offset = 4
+		var cut = Math.floor(Math.random() * (node.width - cut_offset)) + node.x + cut_offset
+		node_x = node.x
+		node_y = node.y
+		node_width = node.width
+		node_height = node.height
 
-		if(Math.random() < 0)
+		//if one of the resulting rooms would be smaller than min_width
+		if(cut - node_x <= this.data.min_width || node_x + node_width - cut <= this.data.min_width)
 		{
 			return node;
 		}
 		else
 		{
-			var cut = Math.floor(Math.random() * (node.width - cut_offset)) + node.x + cut_offset
-			node_x = node.x
-			node_y = node.y
-			node_width = node.width
-			node_height = node.height
-
-			//if one of the resulting rooms would be smaller than min_width
-			if(cut - node_x <= this.data.min_width || node_x + node_width - cut <= this.data.min_width)
-			{
-				return node;
-			}
-			else
-			{
-				var old_node = node
-				node = {
-					"branch0": {
-						"x": node_x,
-						"y": node_y,
-						"width": cut - node_x,
-						"height": node_height,
-						//"color": this.getRandomColor(),
-						"parent": old_node
-					},
-					"branch1": {
-						"x": cut,
-						"y": node_y,
-						"width": node_x + node_width - cut,
-						"height": node_height,
-						//"color": this.getRandomColor(),
-						"parent": old_node
-					}
+			var old_node = node
+			node = {
+				"branch0": {
+					"x": node_x,
+					"y": node_y,
+					"width": cut - node_x,
+					"height": node_height,
+					//"color": this.getRandomColor(),
+					"parent": old_node
+				},
+				"branch1": {
+					"x": cut,
+					"y": node_y,
+					"width": node_x + node_width - cut,
+					"height": node_height,
+					//"color": this.getRandomColor(),
+					"parent": old_node
 				}
-				node.branch0.sibling = node.branch1
-				node.branch1.sibling = node.branch0
-
-				node.branch0 = this.partition_vertical(node.branch0)
-				node.branch1 = this.partition_vertical(node.branch1)
 			}
+			node.branch0.sibling = node.branch1
+			node.branch1.sibling = node.branch0
+
+			node.branch0 = this.partition_vertical(node.branch0)
+			node.branch1 = this.partition_vertical(node.branch1)
 		}
 
 		return node;

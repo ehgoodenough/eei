@@ -101,9 +101,21 @@ var AdventurerStore = Phlux.createStore({
 var MonsterStore = Phlux.createStore({
     initiateStore: function() {
         this.data = {}
-        this.addMonster(MonsterData.dragon, {x: 2, y: 2})
-        this.addMonster(MonsterData.demon, {x: 17, y: 5})
+        var rooms = DungeonStore.getRooms()
+        for(var index = 1; index < rooms.length - 1; index++) {
+            var room = rooms[index]
+            this.addMonstersToRoom(room, 1)
+        }
+        this.addMonstersToRoom(rooms[rooms.length - 1], 3)
         this.trigger()
+    },
+    addMonstersToRoom: function(room, amount)
+    {
+        for(var index = 0; index < amount; index++) {
+            var x = Math.floor(Math.random() * room.width) + room.x
+            var y = Math.floor(Math.random() * room.height) + room.y
+            this.addMonster(MonsterData.dragon, {"x": x, "y": y})
+        }
     },
     onRestartGame: function() {
         this.initiateStore()
