@@ -63,7 +63,7 @@ var Emote = React.createClass({
         } else if(this.props.data == "idle") {
             return null
         } else {
-            return ".."
+            return ""
         }
     }
 })

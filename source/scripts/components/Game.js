@@ -24,7 +24,8 @@ var AdventurerStore = Phlux.createStore({
             },
             color: "#111",
             character: "@",
-            life: 3
+            life: 3,
+			gold: 5
         }
         window.setTimeout(function() {
             Phlux.triggerAction("MoveAdventurer", this.data)
@@ -43,8 +44,14 @@ var AdventurerStore = Phlux.createStore({
             if(MonsterStore.getMonster(this.data.position.x, this.data.position.y - 1)) {
                 var monster = MonsterStore.getMonster(this.data.position.x, this.data.position.y - 1)
                 Phlux.triggerAction("AttackMonster", monster.key, 1)
-            } else  {
+            }
+				else if (ItemStore.getBomb(this.data.position.x, this.data.position.y - 1)) {}
+				else  {
                 this.data.position.y -= 1
+				if(ItemStore.getGold(this.data.position.x, this.data.position.y)) {
+					ItemStore.removeGold(this.data.position.x, this.data.position.y)
+					this.data.gold+=4
+				}
                 this.trigger()
             }
             Phlux.triggerAction("MoveAdventurer", this.data)
@@ -59,8 +66,14 @@ var AdventurerStore = Phlux.createStore({
             if(MonsterStore.getMonster(this.data.position.x, this.data.position.y + 1)) {
                 var monster = MonsterStore.getMonster(this.data.position.x, this.data.position.y + 1)
                 Phlux.triggerAction("AttackMonster", monster.key, 1)
-            } else  {
+            }
+				else if (ItemStore.getBomb(this.data.position.x, this.data.position.y + 1)) {}			
+			else  {
                 this.data.position.y += 1
+				if(ItemStore.getGold(this.data.position.x, this.data.position.y)) {
+					ItemStore.removeGold(this.data.position.x, this.data.position.y)
+					this.data.gold+=4
+				}
                 this.trigger()
             }
             Phlux.triggerAction("MoveAdventurer", this.data)
@@ -75,8 +88,14 @@ var AdventurerStore = Phlux.createStore({
             if(MonsterStore.getMonster(this.data.position.x - 1, this.data.position.y)) {
                 var monster = MonsterStore.getMonster(this.data.position.x - 1, this.data.position.y)
                 Phlux.triggerAction("AttackMonster", monster.key, 1)
-            } else  {
+            }
+			else if (ItemStore.getBomb(this.data.position.x - 1, this.data.position.y)) {}
+			else  {
                 this.data.position.x -= 1
+				if(ItemStore.getGold(this.data.position.x, this.data.position.y)) {
+					ItemStore.removeGold(this.data.position.x, this.data.position.y)
+					this.data.gold+=4
+				}
                 this.trigger()
             }
             Phlux.triggerAction("MoveAdventurer", this.data)
@@ -91,8 +110,14 @@ var AdventurerStore = Phlux.createStore({
             if(MonsterStore.getMonster(this.data.position.x + 1, this.data.position.y)) {
                 var monster = MonsterStore.getMonster(this.data.position.x + 1, this.data.position.y)
                 Phlux.triggerAction("AttackMonster", monster.key, 1)
-            } else {
+            } 
+			else if (ItemStore.getBomb(this.data.position.x + 1, this.data.position.y )) {}
+			else {
                 this.data.position.x += 1
+				if(ItemStore.getGold(this.data.position.x, this.data.position.y)) {
+					ItemStore.removeGold(this.data.position.x, this.data.position.y)
+					this.data.gold+=4
+				}
                 this.trigger()
             }
             Phlux.triggerAction("MoveAdventurer", this.data)
@@ -105,6 +130,15 @@ var AdventurerStore = Phlux.createStore({
 		}
         Phlux.triggerAction("MoveAdventurer", this.data)
     },
+	"onKeyE": function() {
+		if(this.data.gold >= 5)
+		{
+		 this.data.gold -= 5
+		 ItemStore.placeBomb(this.data.position.x, this.data.position.y)
+		 this.trigger()
+		}
+		
+	},
     onAttackAdventurer: function(damage) {
         this.data.life -= damage
         this.trigger()
@@ -231,19 +265,23 @@ var MonsterStore = Phlux.createStore({
     },
     onAttackMonster: function(key, damage, melee) {
         var monster = this.data[key]
-		var message = "You attacked a " + monster.name + " for " + damage + " damage."
-                    Phlux.triggerAction("DisplayMessage", message)
         monster.life -= damage
-        if(monster.life <= 0) {
-            Phlux.triggerAction("DisplayMessage", "The " + monster.name + "is dead.")
-            if(melee == true) {
-                Phlux.triggerAction("DropBomb", monster.position)
-            } else {
-                Phlux.triggerAction("DropGold", monster.position)
-            }
+		if(melee == true) {
+			var message = "You attacked a " + monster.name + " for " + damage + " damage."
+                    Phlux.triggerAction("DisplayMessage", message)
+		}
+		else
+		{
+			var message = "You blew up a " + monster.name + " for " + damage + " damage."
+                    Phlux.triggerAction("DisplayMessage", message)
+		}
+		
+        if(monster.life <= 0) {            
+			Phlux.triggerAction("DropGold", monster.position)
+			Phlux.triggerAction("DisplayMessage", "The " + monster.name + " is dead.")
             delete this.data[key]
             if(Object.keys(this.data).length <= 0) {
-                Phlux.triggerAction("DisplayMessage", "Congratulations! You've won!")
+                Phlux.triggerAction("DisplayMessage", "Congratulations! You've won!", "green")
                 window.setTimeout(function() {
                     Phlux.triggerAction("RestartGame")
                 }, 5000)
@@ -307,17 +345,83 @@ var MessageStore = Phlux.createStore({
 
 var ItemStore = Phlux.createStore({
     initiateStore: function() {
-        this.data = {}
+        this.data = {
+			"gold": {},
+			"bombs": {}
+		}
     },
+	onMoveAdventurer: function(adventurer) {
+		for(var key in this.data.bombs)
+		{
+			var bomb = this.data.bombs[key]
+			bomb.time--
+			if(bomb.time <= 0)
+			{
+				console.log("boom")
+				for(var x = bomb.position.x - 1; x < bomb.position.x + 2; x++)
+				{
+					for(var y = bomb.position.y - 1; y < bomb.position.y + 2; y++)
+					{
+						var monster = MonsterStore.getMonster(x, y)
+						
+						if(AdventurerStore.data.position.x == x && AdventurerStore.data.position.y == y)
+						{
+							Phlux.triggerAction("AttackAdventurer", 999)
+							var message = "You blew yourself up.  Good job."
+                    Phlux.triggerAction("DisplayMessage", message, "red")
+						}
+						
+						if(monster)
+						{
+							Phlux.triggerAction("AttackMonster", monster.key, 999)
+						}
+					}
+				}
+				delete this.data.bombs[key]
+			}
+		}
+		this.trigger()
+	},
+	getGold: function(x, y) {
+		if(this.data.gold[x + "x" + y]){
+			return this.data.gold[x + "x" + y]
+		}
+	},
+	removeGold: function(x, y) {
+		if(this.data.gold[x + "x" + y]){
+			delete this.data.gold[x + "x" + y]
+		}
+		this.trigger()
+	},
+	getBomb: function(x, y) {
+		if(this.data.bombs[x + "x" + y]){
+			return this.data.bombs[x + "x" + y]
+		}
+	},
+	placeBomb: function(x, y) {
+		this.data.bombs[x + "x" + y] = {
+			"position": {
+				"x": x,
+				"y": y
+			},
+			"value": 1,
+			"time": 5
+		}
+		this.trigger()
+	},
     onRestartGame: function() {
         this.initiateStore()
     },
     onDropGold: function(position) {
-        console.log(position)
+		this.data.gold[position.x + "x" + position.y] = {
+			"position": {
+				"x": position.x,
+				"y": position.y
+			},
+			"value": 1
+		}
+		this.trigger()
     },
-    onDropBomb: function(position) {
-        console.log(position)
-    }
 })
 
 var Game = React.createClass({
@@ -327,14 +431,16 @@ var Game = React.createClass({
         Phlux.connectStore(DungeonStore, "dungeon"),
         Phlux.connectStore(MonsterStore, "monsters"),
         Phlux.connectStore(MessageStore, "messages"),
-        Phlux.connectStore(AdventurerStore, "adventurer")
+        Phlux.connectStore(AdventurerStore, "adventurer"),
+		Phlux.connectStore(ItemStore, "items")
     ],
     render: function() {
-       return (
+	   return (
             <GameFrame>
                 <Camera target={this.state.adventurer}>
                     <Dungeon data={this.state.dungeon}/>
                     <Entity data={this.state.adventurer}/>
+					{this.renderItems(this.state.items)}
                     {this.renderEntities(this.state.monsters)}
                 </Camera>
                 <AdventurerStatus data={this.state.adventurer}/>
@@ -342,7 +448,7 @@ var Game = React.createClass({
                 <Zoom scale={-12}>
                     <Dungeon data={this.state.dungeon} minimap={true}/>
                     <Entity data={this.state.adventurer} blip={true}/>
-                </Zoom>
+                </Zoom>				
             </GameFrame>
         )
     },
@@ -378,14 +484,33 @@ var Game = React.createClass({
             )
         }
         return renderings
-    }
+    },
+	renderItems: function(items) {
+		var renderings = []
+		for(var key in items.gold) {
+			renderings.push(
+				<GoldPile key={key}
+				data={items.gold[key]}/>
+			)
+		}
+		
+		for(var key in items.bombs) {
+			renderings.push(
+				<BombPile key={key}
+				data={items.bombs[key]}/>
+			)
+		}
+		
+		return renderings
+	}
 })
 
 var AdventurerStatus = React.createClass({
     render: function() {
         return (
             <div style={this.renderStyles()}>
-                {this.renderHearts()}
+                {this.renderGold()}
+				{this.renderHearts()}
             </div>
         )
     },
@@ -413,7 +538,14 @@ var AdventurerStatus = React.createClass({
             }
         }
         return renderings
-    }
+    },
+	renderGold: function() {
+		return (
+			<span className="heart" style={{color:"#E8B51C", fontSize: "1.5em"}}>
+				{this.props.data.gold}
+			</span>
+		)
+	}
 })
 
 var AdventurerHeart = React.createClass({
@@ -432,6 +564,48 @@ var AdventurerHeart = React.createClass({
             color: this.props.beating ? "#C33" : "#EEE"
         }
     }
+})
+
+var GoldPile = React.createClass({
+    render: function() {
+		return (
+			<div style={this.renderStyles()}>
+			.:.
+			</div>
+		)
+	},
+	renderStyles: function() {
+		return {
+			color: "#E8B51C",
+			position: "absolute",
+			top: this.props.data.position.y + "em",
+			left: this.props.data.position.x + "em",
+			width: "1em",
+			height: "1em",
+			textAlign: "center"
+		}
+	}
+})
+
+var BombPile = React.createClass({
+    render: function() {
+		return (
+			<div className="bomb" style={this.renderStyles()}>
+			*
+			</div>
+		)
+	},
+	renderStyles: function() {
+		return {
+			color: "#000",
+			position: "absolute",
+			top: this.props.data.position.y + "em",
+			left: this.props.data.position.x + "em",
+			width: "1em",
+			height: "1em",
+			textAlign: "center",
+		}
+	}
 })
 
 module.exports = Game
