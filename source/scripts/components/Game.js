@@ -329,10 +329,15 @@ var MonsterStore = Phlux.createStore({
             this.trigger()
         }
     },
-    onAttackMonster: function(key, damage) {
+    onAttackMonster: function(key, damage, melee) {
         var monster = this.data[key]
         monster.life -= damage
         if(monster.life <= 0) {
+            if(melee == true) {
+                Phlux.triggerAction("DropBomb", monster.position)
+            } else {
+                Phlux.triggerAction("DropGold", monster.position)
+            }
             delete this.data[key]
         }
         this.trigger()
@@ -387,6 +392,21 @@ var MessageStore = Phlux.createStore({
             "text": text
         })
         this.trigger()
+    }
+})
+
+var ItemStore = Phlux.createStore({
+    initiateStore: function() {
+        this.data = {}
+    },
+    onRestartGame: function() {
+        this.initiateStore()
+    },
+    onDropGold: function(position) {
+        console.log(position)
+    },
+    onDropBomb: function(position) {
+        console.log(position)
     }
 })
 
