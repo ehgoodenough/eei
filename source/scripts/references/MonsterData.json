@@ -5,42 +5,49 @@
             "character": "&",
             "color": "#339",
             "damage": 1,
-            "life": 2
+            "life": 2,
+			"see_message": "cackles evilly"
+			
         },
         "sphinx": {
             "name": "sphinx",
             "character": "X",
             "color": "#E3AA24 ",
             "damage": 3,
-            "life": 1
+            "life": 1,
+			"see_message": "spouts a riddle"
         },
         "orc": {
             "name": "orc",
             "character": "O",
             "color": "#365959",
             "damage": 2,
-            "life": 1
+            "life": 1,
+			"see_message": "utters a warcry"
         },
         "snake": {
             "name": "snake",
             "character": "s",
             "color": "#18AB1A",
             "damage": 0,
-            "life": 3
+            "life": 3,
+			"see_message": "hisses"
         },
         "goblin": {
             "name": "goblin",
             "character": "g",
             "color": "#993399 ",
             "damage": 1,
-            "life": 1
+            "life": 1,
+			"see_message": "cackles"
         },
         "bat": {
             "name": "bat",
             "character": "^",
             "color": "#33334C ",
             "damage": 0,
-            "life": 1
+            "life": 1,
+			"see_message": "squeaks"
         }
     },
     "rare": {
@@ -49,21 +56,24 @@
             "character": "$",
             "color": "#C33",
             "damage": 3,
-            "life": 2
+            "life": 2,
+			"see_message": "roars"
         },
         "cockatrice": {
             "name": "cockatrice",
             "character": "%",
             "color": "#F0E87A",
             "damage": 2,
-            "life": 2
+            "life": 2,
+			"see_message": "cock-a-doodle-doos"
         },
         "troll": {
             "name": "troll",
             "character": "T",
             "color": "#00FF00 ",
             "damage": 1,
-            "life": 4
+            "life": 4,
+			"see_message": "grunts"
         },
     }
 }

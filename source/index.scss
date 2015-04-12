@@ -14,3 +14,15 @@ html
     	background-color: #507642;
     }
 }
+
+@keyframes bomb-flash {
+  from { color: black; }
+  to { color: red; }
+}
+
+.bomb {
+	animation-name: bomb-flash;
+	animation-iteration-count: infinite;
+	animation-duration: 0.15s;
+	font-weight: bold;
+}
