@@ -26,6 +26,9 @@ var AdventurerStore = Phlux.createStore({
             character: "@",
             life: 3
         }
+        window.setTimeout(function() {
+            Phlux.triggerAction("MoveAdventurer", this.data)
+        }.bind(this), 1)
         this.trigger()
     },
     onRestartGame: function() {
@@ -33,30 +36,50 @@ var AdventurerStore = Phlux.createStore({
     },
     onKeyW: function() {
         if(DungeonStore.getTile(this.data.position.x, this.data.position.y - 1)) {
-            this.data.position.y -= 1
+            if(MonsterStore.getMonster(this.data.position.x, this.data.position.y - 1)) {
+                var monster = MonsterStore.getMonster(this.data.position.x, this.data.position.y - 1)
+                Phlux.triggerAction("AttackMonster", monster.key, 1)
+            } else  {
+                this.data.position.y -= 1
+                this.trigger()
+            }
             Phlux.triggerAction("MoveAdventurer", this.data)
-            this.trigger()
         }
     },
     onKeyS: function() {
         if(DungeonStore.getTile(this.data.position.x, this.data.position.y + 1)) {
-            this.data.position.y += 1
+            if(MonsterStore.getMonster(this.data.position.x, this.data.position.y + 1)) {
+                var monster = MonsterStore.getMonster(this.data.position.x, this.data.position.y + 1)
+                Phlux.triggerAction("AttackMonster", monster.key, 1)
+            } else  {
+                this.data.position.y += 1
+                this.trigger()
+            }
             Phlux.triggerAction("MoveAdventurer", this.data)
-            this.trigger()
         }
     },
     onKeyA: function() {
         if(DungeonStore.getTile(this.data.position.x - 1, this.data.position.y)) {
-            this.data.position.x -= 1
+            if(MonsterStore.getMonster(this.data.position.x - 1, this.data.position.y)) {
+                var monster = MonsterStore.getMonster(this.data.position.x - 1, this.data.position.y)
+                Phlux.triggerAction("AttackMonster", monster.key, 1)
+            } else  {
+                this.data.position.x -= 1
+                this.trigger()
+            }
             Phlux.triggerAction("MoveAdventurer", this.data)
-            this.trigger()
         }
     },
     onKeyD: function() {
         if(DungeonStore.getTile(this.data.position.x + 1, this.data.position.y)) {
-            this.data.position.x += 1
+            if(MonsterStore.getMonster(this.data.position.x + 1, this.data.position.y)) {
+                var monster = MonsterStore.getMonster(this.data.position.x + 1, this.data.position.y)
+                Phlux.triggerAction("AttackMonster", monster.key, 1)
+            } else {
+                this.data.position.x += 1
+                this.trigger()
+            }
             Phlux.triggerAction("MoveAdventurer", this.data)
-            this.trigger()
         }
     },
     "onKey.": function() {
@@ -67,8 +90,10 @@ var AdventurerStore = Phlux.createStore({
         this.trigger()
         if(this.data.life <= 0) {
             Phlux.triggerAction("RestartGame")
+            return true
         } else {
             this.trigger()
+            return false
         }
     }
 })
@@ -248,6 +273,7 @@ var MonsterStore = Phlux.createStore({
             "path": [],
             "emote": "idle",
             "position": position,
+            "life": protomonster.life,
             "name": protomonster.name,
             "color": protomonster.color,
             "damage": protomonster.damage,
@@ -270,9 +296,12 @@ var MonsterStore = Phlux.createStore({
                 if(next_position.x == adventurer.position.x
                 && next_position.y == adventurer.position.y) {
                     monster.path.unshift(next_position)
-                    Phlux.triggerAction("AttackAdventurer", monster.damage)
                     var message = "A " + monster.name + " attacks you for " + monster.damage + " damage."
                     Phlux.triggerAction("DisplayMessage", message)
+                    var isDead = AdventurerStore.onAttackAdventurer(monster.damage)
+                    if(isDead == true) {
+                        break
+                    }
                 } else {
                     monster.previous_position = monster.position
                     monster.position = {
@@ -298,6 +327,23 @@ var MonsterStore = Phlux.createStore({
             }
             monster.line = DungeonStore.getPointLine(monster.position, adventurer.position)
             this.trigger()
+        }
+    },
+    onAttackMonster: function(key, damage) {
+        var monster = this.data[key]
+        monster.life -= damage
+        if(monster.life <= 0) {
+            delete this.data[key]
+        }
+        this.trigger()
+    },
+    getMonster: function(x, y) {
+        for(var key in this.data) {
+            var monster = this.data[key]
+            if(monster.position.x == x
+            && monster.position.y == y) {
+                return monster
+            }
         }
     }
 })
