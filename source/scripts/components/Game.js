@@ -1,3 +1,4 @@
+var BinaryHeap = require("yabh")
 var Phlux = require("<scripts>/utilities/Phlux")
 var LoopListenerMixin = require("<scripts>/utilities/LoopListenerMixin")
 var KeyboardListenerMixin = require("<scripts>/utilities/KeyboardListenerMixin")
@@ -38,87 +39,83 @@ var DungeonStore = Phlux.createStore({
         x = Math.floor(x)
         y = Math.floor(y)
         return this.data.tiles[x + "x" + y]
-    }
-})
-
-var MonsterData = {
-    demon: {
-        character: "&",
-        color: "#339"
-    }
-}
-
-var MonsterStore = Phlux.createStore({
-    initiateStore: function() {
-        //this.addMonster(MonsterData.demon, {x: 2, y: 2})
-        this.addMonster(MonsterData.demon, {x: 5, y: 2})
     },
-    addMonster: function(protomonster, position) {
-        if(this.index === undefined) {
-            this.index = 0
+    getTileNeighbors: function(point) {
+        var tiles = []
+        var northernTile = this.getTile(point.x, point.y - 1)
+        if(northernTile !== undefined) {
+            tiles.push(northernTile)
         }
-        this.data[this.index] = {
-            "emote": "idle",
-            "position": position,
-            "color": protomonster.color,
-            "character": protomonster.character
+        var southernTile = this.getTile(point.x, point.y + 1)
+        if(southernTile !== undefined) {
+            tiles.push(southernTile)
         }
-        this.index += 1
+        var westernTile = this.getTile(point.x - 1, point.y)
+        if(westernTile !== undefined) {
+            tiles.push(westernTile)
+        }
+        var easternTile = this.getTile(point.x + 1, point.y)
+        if(easternTile !== undefined) {
+            tiles.push(easternTile)
+        }
+        return tiles
     },
-    onMoveAdventurer: function(adventurer) {
-        for(var key in this.data) {
-            var monster = this.data[key]
-            if(monster.emote) {
-                if(monster.emote == "confused") {
-                    monster.emote = "idle"
-                }
-                if(monster.emote == "alarmed") {
-                    monster.emote = "angry"
-                }
-            }
-            if(monster.target_position) {
-                if(Math.abs(monster.position.x - monster.target_position.x) > 0
-                && monster.position.x < monster.target_position.x
-                && DungeonStore.getTile(monster.position.x + 1, monster.position.y)) {
-                    monster.position.x += 1
-                } else if(Math.abs(monster.position.x - monster.target_position.x) > 0
-                && monster.position.x > monster.target_position.x
-                && DungeonStore.getTile(monster.position.x - 1, monster.position.y)) {
-                    monster.position.x -= 1
-                } else if(Math.abs(monster.position.y - monster.target_position.y) > 0
-                && monster.position.y > monster.target_position.y
-                && DungeonStore.getTile(monster.position.x, monster.position.y - 1)) {
-                    monster.position.y -= 1
-                } else if(Math.abs(monster.position.y - monster.target_position.y) > 0
-                && monster.position.y < monster.target_position.y
-                && DungeonStore.getTile(monster.position.x, monster.position.y + 1)) {
-                    monster.position.y += 1
-                }
-                if(monster.position.x == monster.target_position.x
-                && monster.position.y == monster.target_position.y) {
-                    monster.emote = "confused"
-                    delete monster.target_position
-                }
-            }
-            if(this.isInLineOfSight(monster.position, adventurer.position)) {
-                if(monster.emote != "angry") {
-                    monster.emote = "alarmed"
-                }
-                monster.target_position = {
-                    "x": adventurer.position.x,
-                    "y": adventurer.position.y
-                }
-            }
-            monster.los = this.getPointsInLine(monster.position, adventurer.position)
-            this.trigger()
+    getShortestPath: function(alpha_point, omega_point) {
+        var path = new Array()
+        var closed_points = new Object()
+        var open_points = new BinaryHeap(function(point) {
+            return point.score
+        })
+        var first_point = {
+            "x": alpha_point.x,
+            "y": alpha_point.y,
+            "score": 0
         }
+        closed_points[first_point.x + "x" + first_point.y] = first_point
+        open_points.push(first_point)
+        var heuristic = function(alpha_point, omega_point) {
+            var x = Math.abs(alpha_point.x - omega_point.x)
+            var y = Math.abs(alpha_point.y - omega_point.y)
+            return x + y
+        }
+        while(open_points.size() > 0) {
+            var current_point = open_points.pop()
+            if(current_point.x == omega_point.x
+            && current_point.y == omega_point.y) {
+                path.unshift(current_point)
+                break;
+            }
+            var neighboring_tiles = this.getTileNeighbors(current_point)
+            for(var index in neighboring_tiles) {
+                var tile = neighboring_tiles[index]
+                var point = {
+                    x: tile.position.x,
+                    y: tile.position.y,
+                    previous_point: current_point,
+                    score: current_point.score + 1
+                }
+                point.score += heuristic(point, omega_point)
+                var coords = point.x + "x" + point.y
+                if(closed_points[coords] === undefined) {
+                    closed_points[coords] = current_point
+                    open_points.push(point)
+                }
+            }
+        }
+        if(path.length > 0) {
+            while(path[0].previous_point !== undefined
+            && path[0].previous_point.previous_point !== undefined) {
+                var point = path[0].previous_point
+                path.unshift(point)
+            }
+        }
+        return path
     },
     isInLineOfSight: function(alpha, omega) {
         var points = this.getPointsInLine(alpha, omega)
         for(var index in points) {
             var point = points[index]
-            console.log(DungeonStore.getTile(point.x, point.y))
-            if(DungeonStore.getTile(point.x, point.y) == undefined) {
+            if(this.getTile(point.x, point.y) == undefined) {
                 return false
             }
         }
@@ -162,6 +159,74 @@ var MonsterStore = Phlux.createStore({
             }
         }
         return points
+    }
+})
+
+var MonsterData = {
+    demon: {
+        character: "&",
+        color: "#339"
+    },
+    dragon: {
+        character: "$",
+        color: "#C33"
+    }
+}
+
+var MonsterStore = Phlux.createStore({
+    initiateStore: function() {
+        //this.addMonster(MonsterData.demon, {x: 2, y: 2})
+        this.addMonster(MonsterData.dragon, {x: 2, y: 2})
+    },
+    addMonster: function(protomonster, position) {
+        if(this.index === undefined) {
+            this.index = 0
+        }
+        this.data[this.index] = {
+            "emote": "idle",
+            "position": position,
+            "color": protomonster.color,
+            "character": protomonster.character
+        }
+        this.index += 1
+    },
+    onMoveAdventurer: function(adventurer) {
+        for(var key in this.data) {
+            var monster = this.data[key]
+            if(monster.emote) {
+                if(monster.emote == "confused") {
+                    monster.emote = "idle"
+                }
+                if(monster.emote == "alarmed") {
+                    monster.emote = "angry"
+                }
+            }
+            if(monster.target_position) {
+                monster.path = DungeonStore.getShortestPath(monster.position, monster.target_position)
+                monster.position.x = monster.path[0].x
+                monster.position.y = monster.path[0].y
+                if(monster.position.x == adventurer.position.x
+                && monster.position.y == adventurer.position.y) {
+                    console.log("bam you dead")
+                }
+                if(monster.position.x == monster.target_position.x
+                && monster.position.y == monster.target_position.y) {
+                    delete monster.target_position
+                    monster.emote = "confused"
+                }
+            }
+            if(DungeonStore.isInLineOfSight(monster.position, adventurer.position)) {
+                if(monster.emote != "angry") {
+                    monster.emote = "alarmed"
+                }
+                monster.target_position = {
+                    "x": adventurer.position.x,
+                    "y": adventurer.position.y
+                }
+            }
+            monster.line_of_sight = DungeonStore.getPointsInLine(monster.position, adventurer.position)
+            this.trigger()
+        }
     }
 })
 
@@ -219,6 +284,8 @@ var Game = React.createClass({
                     <Dungeon data={this.state.dungeon}/>
                     <Entity data={this.state.adventurer}/>
                     {this.renderEntities(this.state.monsters)}
+                    <Points data={this.state.monsters[0].path} color={"red"}/>
+                    <Points data={this.state.monsters[0].line_of_sight} color={"yellow"}/>
                 </Camera>
             </GameFrame>
         )
@@ -255,10 +322,10 @@ var Points = React.createClass({
         return {
             width: "1em",
             height: "1em",
-            opacity: "0.5",
+            opacity: "0.25",
             top: point.y + "em",
             left: point.x + "em",
-            backgroundColor: "red",
+            backgroundColor: this.props.color,
             position: "absolute"
         }
     }
