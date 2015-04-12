@@ -23,6 +23,9 @@ var Entity = React.createClass({
         if(this.props.blip == true) {
             styles.backgroundColor = this.props.data.color
         }
+		if(this.props.data.isDead) {
+			styles.color = "red"
+		}
         return styles
     },
     renderEmote: function() {

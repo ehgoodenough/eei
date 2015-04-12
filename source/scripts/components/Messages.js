@@ -49,7 +49,8 @@ var Message = React.createClass({
             bottom: this.props.index * 1.25 + "em",
             transitionDuration: "0.25s",
             transitionProperty: "top opacity",
-            transitionTimingFunction: "ease-out"
+            transitionTimingFunction: "ease-out",
+			color: this.props.data.color
         }
     }
 })

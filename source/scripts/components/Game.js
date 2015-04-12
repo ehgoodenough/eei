@@ -35,6 +35,10 @@ var AdventurerStore = Phlux.createStore({
         this.initiateStore()
     },
     onKeyW: function() {
+		if(this.data.isDead)
+		{
+			return;
+		}
         if(DungeonStore.getTile(this.data.position.x, this.data.position.y - 1)) {
             if(MonsterStore.getMonster(this.data.position.x, this.data.position.y - 1)) {
                 var monster = MonsterStore.getMonster(this.data.position.x, this.data.position.y - 1)
@@ -47,6 +51,10 @@ var AdventurerStore = Phlux.createStore({
         }
     },
     onKeyS: function() {
+		if(this.data.isDead)
+		{
+			return;
+		}
         if(DungeonStore.getTile(this.data.position.x, this.data.position.y + 1)) {
             if(MonsterStore.getMonster(this.data.position.x, this.data.position.y + 1)) {
                 var monster = MonsterStore.getMonster(this.data.position.x, this.data.position.y + 1)
@@ -59,6 +67,10 @@ var AdventurerStore = Phlux.createStore({
         }
     },
     onKeyA: function() {
+		if(this.data.isDead)
+		{
+			return;
+		}
         if(DungeonStore.getTile(this.data.position.x - 1, this.data.position.y)) {
             if(MonsterStore.getMonster(this.data.position.x - 1, this.data.position.y)) {
                 var monster = MonsterStore.getMonster(this.data.position.x - 1, this.data.position.y)
@@ -71,6 +83,10 @@ var AdventurerStore = Phlux.createStore({
         }
     },
     onKeyD: function() {
+		if(this.data.isDead)
+		{
+			return;
+		}
         if(DungeonStore.getTile(this.data.position.x + 1, this.data.position.y)) {
             if(MonsterStore.getMonster(this.data.position.x + 1, this.data.position.y)) {
                 var monster = MonsterStore.getMonster(this.data.position.x + 1, this.data.position.y)
@@ -83,13 +99,22 @@ var AdventurerStore = Phlux.createStore({
         }
     },
     "onKey.": function() {
+		if(this.data.isDead)
+		{
+			return;
+		}
         Phlux.triggerAction("MoveAdventurer", this.data)
     },
     onAttackAdventurer: function(damage) {
         this.data.life -= damage
         this.trigger()
         if(this.data.life <= 0) {
-            Phlux.triggerAction("RestartGame")
+			this.data.isDead = true
+			this.trigger()
+			Phlux.triggerAction("DisplayMessage", "You have died. :(", "red")
+                window.setTimeout(function() {
+                    Phlux.triggerAction("RestartGame")
+                }, 1500)
             return true
         } else {
             this.trigger()
@@ -104,20 +129,36 @@ var MonsterStore = Phlux.createStore({
         var rooms = DungeonStore.getRooms()
         for(var index = 1; index < rooms.length - 1; index++) {
             var room = rooms[index]
-            this.addMonstersToRoom(room, 1)
+            this.addMonstersToRoom(room, 1, false)
         }
-        this.addMonstersToRoom(rooms[rooms.length - 1], 3)
+        this.addMonstersToRoom(rooms[rooms.length - 1], 2, false)
+        this.addMonstersToRoom(rooms[rooms.length - 1], 1, true)
         this.trigger()
     },
-    addMonstersToRoom: function(room, amount)
+    addMonstersToRoom: function(room, amount, isRare)
     {
         for(var index = 0; index < amount; index++) {
             var width = room.max_x - room.min_x
             var height = room.max_y - room.min_y
             var x = Math.floor(Math.random() * width) + room.min_x
             var y = Math.floor(Math.random() * height) + room.min_y
-            this.addMonster(MonsterData.dragon, {"x": x, "y": y})
+            var protomonster
+            if(isRare) {
+                protomonster = this.getRandomProperty(MonsterData.rare)
+            } else {
+                protomonster = this.getRandomProperty(MonsterData.common)
+            }
+            this.addMonster(protomonster, {"x": x, "y": y})
         }
+    },
+    getRandomProperty: function(obj) {
+        var count = 0, result;
+        for (var prop in obj) {
+            if (Math.random() < 1/++count) {
+                result = obj[prop];
+            }
+        }
+        return result
     },
     onRestartGame: function() {
         this.initiateStore()
@@ -133,7 +174,8 @@ var MonsterStore = Phlux.createStore({
             "name": protomonster.name,
             "color": protomonster.color,
             "damage": protomonster.damage,
-            "character": protomonster.character
+            "character": protomonster.character,
+			"see_message": protomonster.see_message
         }
     },
     onMoveAdventurer: function(adventurer) {
@@ -174,7 +216,7 @@ var MonsterStore = Phlux.createStore({
             if(DungeonStore.isUnobstructedLine(monster.position, adventurer.position)) {
                 if(monster.emote !== "angry") {
                     monster.emote = "alarmed"
-					var message = "A " + monster.name + " saw you!!"
+					var message = "A " + monster.name + " saw you!!  It " + monster.see_message + "."
                     Phlux.triggerAction("DisplayMessage", message)
                 }
                 monster.target_position = {
@@ -193,12 +235,19 @@ var MonsterStore = Phlux.createStore({
                     Phlux.triggerAction("DisplayMessage", message)
         monster.life -= damage
         if(monster.life <= 0) {
+            Phlux.triggerAction("DisplayMessage", "The " + monster.name + "is dead.")
             if(melee == true) {
                 Phlux.triggerAction("DropBomb", monster.position)
             } else {
                 Phlux.triggerAction("DropGold", monster.position)
             }
             delete this.data[key]
+            if(Object.keys(this.data).length <= 0) {
+                Phlux.triggerAction("DisplayMessage", "Congratulations! You've won!")
+                window.setTimeout(function() {
+                    Phlux.triggerAction("RestartGame")
+                }, 5000)
+            }
         }
         this.trigger()
     },
@@ -246,10 +295,11 @@ var MessageStore = Phlux.createStore({
         })
         this.trigger()
     },
-    onDisplayMessage: function(text) {
+    onDisplayMessage: function(text, color) {
         this.data.unshift({
             "key": UUID.v4(),
-            "text": text
+            "text": text,
+			"color": color || "#EEE"
         })
         this.trigger()
     }
@@ -286,8 +336,6 @@ var Game = React.createClass({
                     <Dungeon data={this.state.dungeon}/>
                     <Entity data={this.state.adventurer}/>
                     {this.renderEntities(this.state.monsters)}
-                    {this.renderPoints(this.state.monsters, "line", "red")}
-                    {this.renderPoints(this.state.monsters, "path", "yellow")}
                 </Camera>
                 <AdventurerStatus data={this.state.adventurer}/>
                 <Messages data={this.state.messages}/>
