@@ -2,47 +2,61 @@ var Phlux = require("<scripts>/utilities/Phlux")
 
 var DungeonStore = Phlux.createStore({
     initiateStore: function() {
-		this.data = {
-			width: 60,
-			height: 45,
-			tiles: {},
-			rooms: {},
-			min_width: 10,
-			min_height: 7,
-			adventurer_x: 0,
-			adventurer_y: 0
-		}
-		var size = 3
-		var room_width = WIDTH - 1
-		var room_height = HEIGHT - 1	
-		
-		//empty tree	
-		this.data.tree = {
-			"x": 0,
-			"y": 0,
-			"width": this.data.width,
-			"height": this.data.height
-		}
-		
-		//partition into spaces
-		this.data.tree = this.partition(this.data.tree)
-		
-		//draw rooms inside spaces
-		this.makeTreeRooms(this.data.tree)		
-		
-		//figure out which rooms to connect
-		var rooms_to_connect = []
-		rooms_to_connect = this.euler(this.data.tree, rooms_to_connect)
-		
-		var start_room = this.getBoundaries(rooms_to_connect[0])
-		
-		this.data.adventurer_x = Math.floor((start_room.min_x + start_room.max_x) / 2)
-		this.data.adventurer_y = Math.floor((start_room.min_y + start_room.max_y) / 2)
-		
-		//connect rooms
-		this.makeTreeDoors(rooms_to_connect)
-		this.trigger()
-		
+		var isComplete = false
+		while(!isComplete)
+		{	
+			try
+			{
+				this.data = {
+					width: 60,
+					height: 45,
+					tiles: {},
+					rooms: {},
+					min_width: 10,
+					min_height: 7,
+					adventurer_x: 0,
+					adventurer_y: 0
+				}
+				var size = 3
+				var room_width = WIDTH - 1
+				var room_height = HEIGHT - 1	
+				
+				//empty tree	
+				var base_tree = {
+					"x": 0,
+					"y": 0,
+					"width": this.data.width,
+					"height": this.data.height
+				}
+				
+				this.data.tree = base_tree
+				
+				//partition into spaces
+				this.data.tree = this.partition(this.data.tree)
+				//draw rooms inside spaces
+				this.makeTreeRooms(this.data.tree)		
+				
+				//figure out which rooms to connect
+				var rooms_to_connect = []
+				rooms_to_connect = this.euler(this.data.tree, rooms_to_connect)
+				
+				var start_room = this.getBoundaries(rooms_to_connect[0])
+				
+				this.data.adventurer_x = Math.floor((start_room.min_x + start_room.max_x) / 2)
+				this.data.adventurer_y = Math.floor((start_room.min_y + start_room.max_y) / 2)
+				
+				//connect rooms
+				this.makeTreeDoors(rooms_to_connect)
+				this.trigger()	
+				isComplete = true
+			}
+			catch(error)
+			{
+				if(error == -1)
+				{
+				}
+			}
+		}		
     },
 	getStartX: function() {
 		return this.data.adventurer_x
@@ -60,52 +74,44 @@ var DungeonStore = Phlux.createStore({
 	},
 	partition_vertical: function(node) {
 		var cut_offset = 2
+		var cut = Math.floor(Math.random() * (node.height - cut_offset)) + node.y + cut_offset
+		node_x = node.x
+		node_y = node.y
+		node_width = node.width
+		node_height = node.height
 		
-		if(Math.random() < 0)
+		//if one of the resulting rooms would be smaller than min_width
+		if(cut - node_y <= this.data.min_height || node_y + node_height - cut <= this.data.min_height)
 		{
 			return node;
 		}
 		else
 		{
-			var cut = Math.floor(Math.random() * (node.height - cut_offset)) + node.y + cut_offset
-			node_x = node.x
-			node_y = node.y
-			node_width = node.width
-			node_height = node.height
-			
-			//if one of the resulting rooms would be smaller than min_width
-			if(cut - node_y <= this.data.min_height || node_y + node_height - cut <= this.data.min_height)
-			{
-				return node;
-			}
-			else
-			{
-				var old_node = node
-				node = {
-					"branch0": {
-						"x": node_x,
-						"y": node_y,
-						"width": node_width,
-						"height": cut - node_y,
-						//"color": this.getRandomColor(),
-						"parent": old_node
-					},
-					"branch1": {
-						"x": node_x,
-						"y": cut,
-						"width": node_width,
-						"height": node_y + node_height - cut,
-						//"color": this.getRandomColor(),
-						"parent": old_node
-					}
+			var old_node = node
+			node = {
+				"branch0": {
+					"x": node_x,
+					"y": node_y,
+					"width": node_width,
+					"height": cut - node_y,
+					//"color": this.getRandomColor(),
+					"parent": old_node
+				},
+				"branch1": {
+					"x": node_x,
+					"y": cut,
+					"width": node_width,
+					"height": node_y + node_height - cut,
+					//"color": this.getRandomColor(),
+					"parent": old_node
 				}
-				
-				node.branch0.sibling = node.branch1
-				node.branch1.sibling = node.branch0
-				
-				node.branch0 = this.partition_horizontal(node.branch0)
-				node.branch1 = this.partition_horizontal(node.branch1)
 			}
+			
+			node.branch0.sibling = node.branch1
+			node.branch1.sibling = node.branch0
+			
+			node.branch0 = this.partition_horizontal(node.branch0)
+			node.branch1 = this.partition_horizontal(node.branch1)
 		}
 		
 		return node;
@@ -193,12 +199,18 @@ var DungeonStore = Phlux.createStore({
 		{
 			this.euler(node.branch0, node_array)
 		}
+		
 		if(node.branch1 != null)
 		{
 			this.euler(node.branch1, node_array)
 		}
 		else
 		{
+			if(node.width == this.data.width && node.height == this.data.height)
+			{
+				throw -1
+			}
+			
 			node_array.push(node)
 			return;
 		}
@@ -229,7 +241,6 @@ var DungeonStore = Phlux.createStore({
 		if(x_mis && y_mis)
 		{
 			//needs corner
-			console.log("	misaligned")
 			this.makeDoorCorner(node1, node2, range1, range2)
 		}
 		else
