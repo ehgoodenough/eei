@@ -1,8 +1,8 @@
-var Adventurer = React.createClass({
+var Entity = React.createClass({
     render: function() {
         return (
             <div style={this.renderStyles()}>
-                @
+                {this.props.data.character}
             </div>
         )
     },
@@ -10,17 +10,16 @@ var Adventurer = React.createClass({
         return {
             width: "1em",
             height: "1em",
-            color: "#EEE",
-            position: "absolute",
             textAlign: "center",
+            color: this.props.data.color,
+            position: "absolute",
             top: this.props.data.position.y + "em",
             left: this.props.data.position.x + "em",
-            transitionTimingFunction: "ease-out",
-            transitionProperty: "top left",
             transitionDuration: "0.25s",
-            backgroundColor: "red"
+            transitionProperty: "top left",
+            transitionTimingFunction: "ease-out",
         }
     }
 })
 
-module.exports = Adventurer
+module.exports = Entity
