@@ -280,7 +280,7 @@ var DungeonStore = Phlux.createStore({
 				//up from second
 				this.makeRoom(cen_x2, cen_y, 1, range2.min_y - cen_y)
 				//connect in middle
-				this.makeRoom(cen_x2, cen_y, Math.abs(cen_x2 - cen_x1) + 1, 1)
+				this.makeRoom(cen_x2, cen_y - 1, Math.abs(cen_x2 - cen_x1) + 1, 1)
 			}
 			//if 2 is higher
 			else
@@ -292,7 +292,7 @@ var DungeonStore = Phlux.createStore({
 				//up from second
 				this.makeRoom(cen_x1, cen_y, 1, range1.min_y - cen_y)
 				//connect in middle
-				this.makeRoom(cen_x1, cen_y, Math.abs(cen_x2 - cen_x1) + 1, 1)
+				this.makeRoom(cen_x1, cen_y - 1, Math.abs(cen_x2 - cen_x1) + 1, 1)
 			}
 		/*
 		//connect on one y
