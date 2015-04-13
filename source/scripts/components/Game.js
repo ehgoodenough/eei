@@ -14,6 +14,8 @@ var Messages = require("<scripts>/components/Messages")
 var DungeonData = require("<scripts>/references/DungeonData.json")
 var MonsterData = require("<scripts>/references/MonsterData.json")
 
+var BinarySpacePartition = require("<scripts>/components/BinarySpacePartition")
+
 var DungeonStore = require("<scripts>/components/DungeonStore")
 var AdventurerStore = Phlux.createStore({
     initiateStore: function() {
@@ -439,7 +441,7 @@ var Game = React.createClass({
 	   return (
             <GameFrame>
                 <Camera target={this.state.adventurer}>
-                    <Dungeon data={this.state.dungeon}/>
+					<Dungeon data={this.state.dungeon}/>
                     <Entity data={this.state.adventurer}/>
 					{this.renderItems(this.state.items)}
                     {this.renderEntities(this.state.monsters)}
